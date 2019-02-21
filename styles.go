@@ -13,6 +13,7 @@ var Styles = struct {
 	MoreContrastBackgroundColor tcell.Color // Background color for even more contrasting elements.
 	BorderColor                 tcell.Color // Box borders.
 	TitleColor                  tcell.Color // Box titles.
+	FocusColor                  tcell.Color // Box focus color.
 	GraphicsColor               tcell.Color // Graphics.
 	PrimaryTextColor            tcell.Color // Primary text.
 	SecondaryTextColor          tcell.Color // Secondary text (e.g. labels).
@@ -25,6 +26,7 @@ var Styles = struct {
 	MoreContrastBackgroundColor: tcell.ColorGreen,
 	BorderColor:                 tcell.ColorWhite,
 	TitleColor:                  tcell.ColorWhite,
+	FocusColor:                  tcell.ColorGreen,
 	GraphicsColor:               tcell.ColorWhite,
 	PrimaryTextColor:            tcell.ColorWhite,
 	SecondaryTextColor:          tcell.ColorYellow,
