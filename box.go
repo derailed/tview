@@ -22,6 +22,9 @@ type Box struct {
 	// Border padding.
 	paddingTop, paddingBottom, paddingLeft, paddingRight int
 
+	// The bordercolor when the box has focus
+	borderFocusColor tcell.Color
+
 	// The box's background color.
 	backgroundColor tcell.Color
 
@@ -63,13 +66,14 @@ type Box struct {
 // NewBox returns a Box without a border.
 func NewBox() *Box {
 	b := &Box{
-		width:           15,
-		height:          10,
-		innerX:          -1, // Mark as uninitialized.
-		backgroundColor: Styles.PrimitiveBackgroundColor,
-		borderColor:     Styles.BorderColor,
-		titleColor:      Styles.TitleColor,
-		titleAlign:      AlignCenter,
+		width:            15,
+		height:           10,
+		innerX:           -1, // Mark as uninitialized.
+		backgroundColor:  Styles.PrimitiveBackgroundColor,
+		borderFocusColor: Styles.FocusColor,
+		borderColor:      Styles.BorderColor,
+		titleColor:       Styles.TitleColor,
+		titleAlign:       AlignCenter,
 	}
 	b.focus = b
 	return b
@@ -263,20 +267,15 @@ func (b *Box) Draw(screen tcell.Screen) {
 		border := background.Foreground(b.borderColor) | tcell.Style(b.borderAttributes)
 		var vertical, horizontal, topLeft, topRight, bottomLeft, bottomRight rune
 		if b.focus.HasFocus() {
-			horizontal = Borders.HorizontalFocus
-			vertical = Borders.VerticalFocus
-			topLeft = Borders.TopLeftFocus
-			topRight = Borders.TopRightFocus
-			bottomLeft = Borders.BottomLeftFocus
-			bottomRight = Borders.BottomRightFocus
-		} else {
-			horizontal = Borders.Horizontal
-			vertical = Borders.Vertical
-			topLeft = Borders.TopLeft
-			topRight = Borders.TopRight
-			bottomLeft = Borders.BottomLeft
-			bottomRight = Borders.BottomRight
+			border = background.Foreground(b.borderFocusColor) | tcell.Style(b.borderAttributes)
 		}
+		horizontal = Borders.Horizontal
+		vertical = Borders.Vertical
+		topLeft = Borders.TopLeft
+		topRight = Borders.TopRight
+		bottomLeft = Borders.BottomLeft
+		bottomRight = Borders.BottomRight
+
 		for x := b.x + 1; x < b.x+b.width-1; x++ {
 			screen.SetContent(x, b.y, horizontal, nil, border)
 			screen.SetContent(x, b.y+b.height-1, horizontal, nil, border)
