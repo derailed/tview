@@ -41,6 +41,27 @@ func NewPages() *Pages {
 	return p
 }
 
+// GetPrimitive returns the corresponding primitive from a named page or nil
+// if not found.
+func (p *Pages) GetPrimitive(name string) Primitive {
+	for _, p := range p.pages {
+		if p.Name == name {
+			return p.Item
+		}
+	}
+	return nil
+}
+
+// CurrentPage fetches the currently visible page.
+func (p *Pages) CurrentPage() *page {
+	for _, pa := range p.pages {
+		if pa.Visible == true {
+			return pa
+		}
+	}
+	return nil
+}
+
 // SetChangedFunc sets a handler which is called whenever the visibility or the
 // order of any visible pages changes. This can be used to redraw the pages.
 func (p *Pages) SetChangedFunc(handler func()) *Pages {
