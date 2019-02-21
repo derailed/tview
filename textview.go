@@ -96,6 +96,9 @@ type TextView struct {
 	// The text buffer.
 	buffer []string
 
+	// Manually set the higlight color.
+	highlightColor tcell.Color
+
 	// The last bytes that have been received but are not part of the buffer yet.
 	recentBytes []byte
 
@@ -175,16 +178,22 @@ type TextView struct {
 // NewTextView returns a new text view.
 func NewTextView() *TextView {
 	return &TextView{
-		Box:           NewBox(),
-		highlights:    make(map[string]struct{}),
-		lineOffset:    -1,
-		scrollable:    true,
-		align:         AlignLeft,
-		wrap:          true,
-		textColor:     Styles.PrimaryTextColor,
-		regions:       false,
-		dynamicColors: false,
+		Box:            NewBox(),
+		highlights:     make(map[string]struct{}),
+		lineOffset:     -1,
+		scrollable:     true,
+		align:          AlignLeft,
+		wrap:           true,
+		textColor:      Styles.PrimaryTextColor,
+		highlightColor: tcell.ColorDefault,
+		regions:        false,
+		dynamicColors:  false,
 	}
+}
+
+// SetHighlightColor sets the region highlight color.
+func (t *TextView) SetHighlightColor(c tcell.Color) {
+	t.highlightColor = c
 }
 
 // SetScrollable sets the flag that decides whether or not the text view is
@@ -722,6 +731,8 @@ func (t *TextView) reindexBuffer(width int) {
 			line.NextPos = originalPos
 			line.Width = stringWidth(splitLine)
 			t.index = append(t.index, line)
+			// Reset tag for next line
+			regionID = ""
 		}
 
 		// Word-wrapped lines may have trailing whitespace. Remove it.
@@ -917,7 +928,11 @@ func (t *TextView) Draw(screen tcell.Screen) {
 						bg = tcell.ColorBlack
 					}
 				}
+				if t.highlightColor != tcell.ColorDefault {
+					fg = t.highlightColor
+				}
 				style = style.Background(fg).Foreground(bg)
+
 			}
 
 			// Skip to the right.
@@ -979,12 +994,9 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'g': // Home.
-				t.trackEnd = false
-				t.lineOffset = 0
-				t.columnOffset = 0
+				t.ScrollToBeginning()
 			case 'G': // End.
-				t.trackEnd = true
-				t.columnOffset = 0
+				t.ScrollToEnd()
 			case 'j': // Down.
 				t.lineOffset++
 			case 'k': // Up.
@@ -996,12 +1008,9 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 				t.columnOffset++
 			}
 		case tcell.KeyHome:
-			t.trackEnd = false
-			t.lineOffset = 0
-			t.columnOffset = 0
+			t.ScrollToBeginning()
 		case tcell.KeyEnd:
-			t.trackEnd = true
-			t.columnOffset = 0
+			t.ScrollToEnd()
 		case tcell.KeyUp:
 			t.trackEnd = false
 			t.lineOffset--
@@ -1012,10 +1021,20 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyRight:
 			t.columnOffset++
 		case tcell.KeyPgDn, tcell.KeyCtrlF:
-			t.lineOffset += t.pageSize
+			t.PageDown()
 		case tcell.KeyPgUp, tcell.KeyCtrlB:
-			t.trackEnd = false
-			t.lineOffset -= t.pageSize
+			t.PageUp()
 		}
 	})
+}
+
+// PageUp move up a full page.
+func (t *TextView) PageUp() {
+	t.trackEnd = false
+	t.lineOffset -= t.pageSize
+}
+
+// PageDown move down a full page.
+func (t *TextView) PageDown() {
+	t.lineOffset += t.pageSize
 }
