@@ -996,6 +996,32 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		// Movement functions.
 		previouslySelectedRow, previouslySelectedColumn := t.selectedRow, t.selectedColumn
 		var (
+<<<<<<< HEAD
+=======
+			home = func() {
+				if t.rowsSelectable {
+					t.selectedRow = 0
+					t.selectedColumn = 0
+					t.next()
+				} else {
+					t.trackEnd = false
+					t.rowOffset = 0
+					t.columnOffset = 0
+				}
+			}
+
+			end = func() {
+				if t.rowsSelectable {
+					t.selectedRow = len(t.cells) - 1
+					t.selectedColumn = t.lastColumn
+					t.previous()
+				} else {
+					t.trackEnd = true
+					t.columnOffset = 0
+				}
+			}
+
+>>>>>>> exported nav handlers
 			down = func() {
 				if t.rowsSelectable {
 					t.selectedRow++
@@ -1101,10 +1127,9 @@ func (t *Table) PageDown() {
 			t.selectedRow = len(t.cells) - 1
 		}
 		t.next()
-		return
+	} else {
+		t.rowOffset += t.visibleRows
 	}
-
-	t.rowOffset += t.visibleRows
 }
 
 // PageUp a full page
@@ -1115,11 +1140,10 @@ func (t *Table) PageUp() {
 			t.selectedRow = 0
 		}
 		t.previous()
-		return
+	} else {
+		t.trackEnd = false
+		t.rowOffset -= t.visibleRows
 	}
-
-	t.trackEnd = false
-	t.rowOffset -= t.visibleRows
 }
 
 func (t *Table) previous() {
