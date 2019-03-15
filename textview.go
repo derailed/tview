@@ -172,6 +172,10 @@ type TextView struct {
 	// An optional function which is called when the user presses one of the
 	// following keys: Escape, Enter, Tab, Backtab.
 	done func(tcell.Key)
+
+	// MaxBuffer keeps only that many lines in the buffer for large text display.
+	// The text buffer will be trimmed once the limit is reached.
+	maxBuffer int
 }
 
 // NewTextView returns a new text view.
@@ -567,14 +571,21 @@ func (t *TextView) Write(p []byte) (n int, err error) {
 				t.buffer[len(t.buffer)-1] += line
 			}
 		} else {
+			if t.maxBuffer != 0 && len(t.buffer) > t.maxBuffer {
+				t.buffer = t.buffer[1:]
+			}
 			t.buffer = append(t.buffer, line)
 		}
 	}
-
 	// Reset the index.
 	t.index = nil
 
 	return len(p), nil
+}
+
+// SetMaxBuffer sets the maximum text buffer size.
+func (t *TextView) SetMaxBuffer(size int) {
+	t.maxBuffer = size
 }
 
 // reindexBuffer re-indexes the buffer such that we can use it to easily draw
@@ -844,6 +855,9 @@ func (t *TextView) Draw(screen tcell.Screen) {
 
 		// Get the text for this line.
 		index := t.index[line]
+		if index.Line == len(t.buffer) {
+			break
+		}
 		text := t.buffer[index.Line][index.Pos:index.NextPos]
 		foregroundColor := index.ForegroundColor
 		backgroundColor := index.BackgroundColor
@@ -1013,12 +1027,20 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 }
 
 // PageUp move up a full page.
-func (t *TextView) PageUp() {
+func (t *TextView) PageUp() bool {
 	t.trackEnd = false
 	t.lineOffset -= t.pageSize
+	if t.lineOffset == 0 {
+		return true
+	}
+	return false
 }
 
 // PageDown move down a full page.
-func (t *TextView) PageDown() {
+func (t *TextView) PageDown() bool {
 	t.lineOffset += t.pageSize
+	if t.lineOffset == len(t.index) {
+		return true
+	}
+	return false
 }
