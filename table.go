@@ -282,7 +282,7 @@ func NewTable() *Table {
 
 // Clear removes all table data.
 func (t *Table) Clear() *Table {
-	t.cells = nil
+	t.cells = make([][]*TableCell, 0)
 	t.lastColumn = -1
 	return t
 }
@@ -572,7 +572,7 @@ func (t *Table) Draw(screen tcell.Screen) {
 
 	// Return the cell at the specified position (nil if it doesn't exist).
 	getCell := func(row, column int) *TableCell {
-		if row < 0 || column < 0 || row >= len(t.cells) || column >= len(t.cells[row]) {
+		if t.cells == nil || row < 0 || column < 0 || row >= len(t.cells) || column >= len(t.cells[row]) {
 			return nil
 		}
 		return t.cells[row][column]
