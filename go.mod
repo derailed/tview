@@ -7,8 +7,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v0.0.0-20181028223441-12d3b2882a08
 	github.com/mattn/go-runewidth v0.0.4
 	github.com/rivo/tview v0.0.0-20190213202703-b373355e9db4
-	github.com/rivo/uniseg v0.0.0-20190313204849-f699dde9c340
-	github.com/rs/zerolog v1.14.3
+	github.com/sirupsen/logrus v1.3.0 // indirect
 )
 
 go 1.13
