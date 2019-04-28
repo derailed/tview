@@ -526,9 +526,16 @@ func (t *Table) GetColumnCount() int {
 // corner of the table is shown. Note that this position may be corrected if
 // there is a selection.
 func (t *Table) ScrollToBeginning() *Table {
+	if t.rowsSelectable {
+		t.selectedRow = t.fixedRows
+		t.selectedColumn = 0
+		t.next()
+		return t
+	}
+
 	t.trackEnd = false
+	t.rowOffset = t.fixedRows
 	t.columnOffset = 0
-	t.rowOffset = 0
 	return t
 }
 
@@ -537,9 +544,15 @@ func (t *Table) ScrollToBeginning() *Table {
 // automatically scroll with the new data. Note that this position may be
 // corrected if there is a selection.
 func (t *Table) ScrollToEnd() *Table {
+	if t.rowsSelectable {
+		t.selectedRow = len(t.cells) - 1
+		t.selectedColumn = t.lastColumn
+		t.previous()
+		return t
+	}
+
 	t.trackEnd = true
 	t.columnOffset = 0
-	t.rowOffset = len(t.cells)
 	return t
 }
 
@@ -958,29 +971,6 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		// Movement functions.
 		previouslySelectedRow, previouslySelectedColumn := t.selectedRow, t.selectedColumn
 		var (
-			home = func() {
-				if t.rowsSelectable {
-					t.selectedRow = 0
-					t.selectedColumn = 0
-					t.next()
-				} else {
-					t.trackEnd = false
-					t.rowOffset = 0
-					t.columnOffset = 0
-				}
-			}
-
-			end = func() {
-				if t.rowsSelectable {
-					t.selectedRow = len(t.cells) - 1
-					t.selectedColumn = t.lastColumn
-					t.previous()
-				} else {
-					t.trackEnd = true
-					t.columnOffset = 0
-				}
-			}
-
 			down = func() {
 				if t.rowsSelectable {
 					t.selectedRow++
@@ -1035,9 +1025,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'g':
-				home()
+				t.ScrollToBeginning()
 			case 'G':
-				end()
+				t.ScrollToEnd()
 			case 'j':
 				down()
 			case 'k':
@@ -1048,9 +1038,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 				right()
 			}
 		case tcell.KeyHome:
-			home()
+			t.ScrollToBeginning()
 		case tcell.KeyEnd:
-			end()
+			t.ScrollToEnd()
 		case tcell.KeyUp:
 			up()
 		case tcell.KeyDown:
@@ -1086,9 +1076,10 @@ func (t *Table) PageDown() {
 			t.selectedRow = len(t.cells) - 1
 		}
 		t.next()
-	} else {
-		t.rowOffset += t.visibleRows
+		return
 	}
+
+	t.rowOffset += t.visibleRows
 }
 
 // PageUp a full page
@@ -1099,10 +1090,11 @@ func (t *Table) PageUp() {
 			t.selectedRow = 0
 		}
 		t.previous()
-	} else {
-		t.trackEnd = false
-		t.rowOffset -= t.visibleRows
+		return
 	}
+
+	t.trackEnd = false
+	t.rowOffset -= t.visibleRows
 }
 
 func (t *Table) previous() {
