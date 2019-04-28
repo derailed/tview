@@ -996,29 +996,6 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		// Movement functions.
 		previouslySelectedRow, previouslySelectedColumn := t.selectedRow, t.selectedColumn
 		var (
-			home = func() {
-				if t.rowsSelectable {
-					t.selectedRow = 0
-					t.selectedColumn = 0
-					t.next()
-				} else {
-					t.trackEnd = false
-					t.rowOffset = 0
-					t.columnOffset = 0
-				}
-			}
-
-			end = func() {
-				if t.rowsSelectable {
-					t.selectedRow = len(t.cells) - 1
-					t.selectedColumn = t.lastColumn
-					t.previous()
-				} else {
-					t.trackEnd = true
-					t.columnOffset = 0
-				}
-			}
-
 			down = func() {
 				if t.rowsSelectable {
 					t.selectedRow++
@@ -1073,9 +1050,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'g':
-				home()
+				t.ScrollToBeginning()
 			case 'G':
-				end()
+				t.ScrollToEnd()
 			case 'j':
 				down()
 			case 'k':
@@ -1086,9 +1063,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 				right()
 			}
 		case tcell.KeyHome:
-			home()
+			t.ScrollToBeginning()
 		case tcell.KeyEnd:
-			end()
+			t.ScrollToEnd()
 		case tcell.KeyUp:
 			up()
 		case tcell.KeyDown:
