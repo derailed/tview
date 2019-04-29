@@ -207,6 +207,12 @@ func (b *Box) SetBorderColor(color tcell.Color) *Box {
 	return b
 }
 
+// SetBorderFocusColor sets the box's border color.
+func (b *Box) SetBorderFocusColor(color tcell.Color) *Box {
+	b.borderFocusColor = color
+	return b
+}
+
 // SetBorderAttributes sets the border's style attributes. You can combine
 // different attributes using bitmask operations:
 //
