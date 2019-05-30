@@ -10,3 +10,5 @@ require (
 	github.com/rivo/uniseg v0.0.0-20190313204849-f699dde9c340
 	github.com/rs/zerolog v1.14.3
 )
+
+go 1.13
