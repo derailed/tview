@@ -120,6 +120,18 @@ func (m *Modal) AddButtons(labels []string) *Modal {
 	return m
 }
 
+// ClearButtons removes all buttons from the window.
+func (m *Modal) ClearButtons() *Modal {
+	m.form.ClearButtons()
+	return m
+}
+
+// SetTitle adds a title to the modal.
+func (m *Modal) SetTitle(t string) {
+	m.frame.SetTitle(t)
+	m.frame.SetTitleColor(Styles.PrimaryTextColor)
+}
+
 // Focus is called when this primitive receives focus.
 func (m *Modal) Focus(delegate func(p Primitive)) {
 	delegate(m.form)
