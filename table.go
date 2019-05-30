@@ -358,6 +358,9 @@ func (t *Table) GetSelection() (row, column int) {
 // ignored completely.
 func (t *Table) Select(row, column int) *Table {
 	t.selectedRow, t.selectedColumn = row, column
+	if t.selectionChanged != nil {
+		t.selectionChanged(row, column)
+	}
 	return t
 }
 
