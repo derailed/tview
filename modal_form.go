@@ -2,7 +2,6 @@ package tview
 
 import (
 	"github.com/gdamore/tcell"
-	"github.com/rs/zerolog/log"
 )
 
 // ModalForm implements a modal window with a custom form.
@@ -33,7 +32,6 @@ func NewModalForm(title string, form *Form) *ModalForm {
 
 // Draw draws this primitive onto the screen.
 func (m *ModalForm) Draw(screen tcell.Screen) {
-	log.Debug().Msg("YO!!")
 	// Calculate the width of this modal.
 	buttonsWidth := 0
 	for _, button := range m.form.buttons {
