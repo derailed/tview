@@ -1026,6 +1026,16 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 	})
 }
 
+// LineUp move up a one line.
+func (t *TextView) LineUp() bool {
+	t.trackEnd = false
+	t.lineOffset--
+	if t.lineOffset == 0 {
+		return true
+	}
+	return false
+}
+
 // PageUp move up a full page.
 func (t *TextView) PageUp() bool {
 	t.trackEnd = false
