@@ -259,6 +259,11 @@ func (t *TextView) SetText(text string) *TextView {
 	return t
 }
 
+// GetLineCount counts the number of lines in the view.
+func (t *TextView) GetLineCount() int {
+	return len(t.buffer) - 1
+}
+
 // GetText returns the current text of this text view. If "stripTags" is set
 // to true, any region/color tags are stripped from the text.
 func (t *TextView) GetText(stripTags bool) string {
