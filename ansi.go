@@ -6,6 +6,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 // The states of the ANSI escape code parser.
@@ -27,19 +29,24 @@ type ansi struct {
 
 	// The current state of the parser. One of the ansi constants.
 	state int
+
+	// foreground, background reset colors
+	fg, bg string
 }
 
 // ANSIWriter returns an io.Writer which translates any ANSI escape codes
 // written to it into tview color tags. Other escape codes don't have an effect
 // and are simply removed. The translated text is written to the provided
 // writer.
-func ANSIWriter(writer io.Writer) io.Writer {
+func ANSIWriter(writer io.Writer, fg, bg string) io.Writer {
 	return &ansi{
 		Writer:          writer,
 		buffer:          new(bytes.Buffer),
 		csiParameter:    new(bytes.Buffer),
 		csiIntermediate: new(bytes.Buffer),
 		state:           ansiText,
+		fg:              fg,
+		bg:              bg,
 	}
 }
 
@@ -61,6 +68,7 @@ func (a *ansi) Write(text []byte) (int, error) {
 				a.csiIntermediate.Reset()
 				a.state = ansiControlSequence
 			case 'c': // Reset.
+				log.Debug().Msg("!!! c reset")
 				fmt.Fprint(a.buffer, "[-:-:-]")
 				a.state = ansiText
 			case 'P', ']', 'X', '^', '_': // Substrings and commands.
@@ -96,7 +104,9 @@ func (a *ansi) Write(text []byte) (int, error) {
 					fields := strings.Split(a.csiParameter.String(), ";")
 					if len(fields) == 0 || len(fields) == 1 && fields[0] == "0" {
 						// Reset.
-						if _, err := a.buffer.WriteString("[-:-:-]"); err != nil {
+						log.Debug().Msgf("Fields %#v", fields)
+						log.Debug().Msg("!!! m reset")
+						if _, err := a.buffer.WriteString("[" + a.fg + ":" + a.bg + ":-]"); err != nil {
 							return 0, err
 						}
 						break
@@ -231,7 +241,7 @@ func (a *ansi) Write(text []byte) (int, error) {
 // with tview's color tags and returns the resulting string.
 func TranslateANSI(text string) string {
 	var buffer bytes.Buffer
-	writer := ANSIWriter(&buffer)
+	writer := ANSIWriter(&buffer, "white", "black")
 	writer.Write([]byte(text))
 	return buffer.String()
 }
