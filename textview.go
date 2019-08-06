@@ -347,6 +347,7 @@ func (t *TextView) ScrollTo(row, column int) *TextView {
 	}
 	t.lineOffset = row
 	t.columnOffset = column
+	t.trackEnd = false
 	return t
 }
 
@@ -972,8 +973,13 @@ func (t *TextView) Draw(screen tcell.Screen) {
 	// If this view is not scrollable, we'll purge the buffer of lines that have
 	// scrolled out of view.
 	if !t.scrollable && t.lineOffset > 0 {
-		t.buffer = t.buffer[t.index[t.lineOffset].Line:]
+		if t.lineOffset <= len(t.index) {
+			t.buffer = nil
+		} else {
+			t.buffer = t.buffer[t.index[t.lineOffset].Line:]
+		}
 		t.index = nil
+		t.lineOffset = 0
 	}
 }
 

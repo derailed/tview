@@ -154,6 +154,20 @@ func (f *Form) SetButtonTextColor(color tcell.Color) *Form {
 	return f
 }
 
+// SetFocus shifts the focus to the form element with the given index, counting
+// non-button items first and buttons last. Note that this index is only used
+// when the form itself receives focus.
+func (f *Form) SetFocus(index int) *Form {
+	if index < 0 {
+		f.focusedElement = 0
+	} else if index >= len(f.items)+len(f.buttons) {
+		f.focusedElement = len(f.items) + len(f.buttons)
+	} else {
+		f.focusedElement = index
+	}
+	return f
+}
+
 // AddInputField adds an input field to the form. It has a label, an optional
 // initial value, a field width (a value of 0 extends it as far as possible),
 // an optional accept function to validate the item's value (set to nil to
@@ -195,8 +209,8 @@ func (f *Form) AddPasswordField(label, value string, fieldWidth int, mask rune, 
 func (f *Form) AddDropDown(label string, options []string, initialOption int, selected func(option string, optionIndex int)) *Form {
 	f.items = append(f.items, NewDropDown().
 		SetLabel(label).
-		SetCurrentOption(initialOption).
-		SetOptions(options, selected))
+		SetOptions(options, selected).
+		SetCurrentOption(initialOption))
 	return f
 }
 
@@ -254,9 +268,15 @@ func (f *Form) GetButtonIndex(label string) int {
 func (f *Form) Clear(includeButtons bool) *Form {
 	f.items = nil
 	if includeButtons {
-		f.buttons = nil
+		f.ClearButtons()
 	}
 	f.focusedElement = 0
+	return f
+}
+
+// ClearButtons removes all buttons from the form.
+func (f *Form) ClearButtons() *Form {
+	f.buttons = nil
 	return f
 }
 
