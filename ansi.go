@@ -6,8 +6,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-
-	"github.com/rs/zerolog/log"
 )
 
 // The states of the ANSI escape code parser.
@@ -68,7 +66,6 @@ func (a *ansi) Write(text []byte) (int, error) {
 				a.csiIntermediate.Reset()
 				a.state = ansiControlSequence
 			case 'c': // Reset.
-				log.Debug().Msg("!!! c reset")
 				fmt.Fprint(a.buffer, "[-:-:-]")
 				a.state = ansiText
 			case 'P', ']', 'X', '^', '_': // Substrings and commands.
@@ -104,8 +101,6 @@ func (a *ansi) Write(text []byte) (int, error) {
 					fields := strings.Split(a.csiParameter.String(), ";")
 					if len(fields) == 0 || len(fields) == 1 && fields[0] == "0" {
 						// Reset.
-						log.Debug().Msgf("Fields %#v", fields)
-						log.Debug().Msg("!!! m reset")
 						if _, err := a.buffer.WriteString("[" + a.fg + ":" + a.bg + ":-]"); err != nil {
 							return 0, err
 						}
