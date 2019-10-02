@@ -71,6 +71,19 @@ func (f *Flex) SetFullScreen(fullScreen bool) *Flex {
 	return f
 }
 
+// AddItemAtIndex add an item to the flex at a given index.
+func (f *Flex) AddItemAtIndex(index int, item Primitive, fixedSize, proportion int, focus bool) *Flex {
+	i := &flexItem{Item: item, FixedSize: fixedSize, Proportion: proportion, Focus: focus}
+
+	if index == 0 {
+		f.items = append([]*flexItem{i}, f.items...)
+	} else {
+		f.items = append(f.items[:index], append([]*flexItem{i}, f.items[index:]...)...)
+	}
+
+	return f
+}
+
 // AddItem adds a new item to the container. The "fixedSize" argument is a width
 // or height that may not be changed by the layout algorithm. A value of 0 means
 // that its size is flexible and may be changed. The "proportion" argument
@@ -99,6 +112,11 @@ func (f *Flex) RemoveItem(p Primitive) *Flex {
 		}
 	}
 	return f
+}
+
+// RemoveItemAtIndex remove an item at the given index.
+func (f *Flex) RemoveItemAtIndex(index int) *Flex {
+	return f.RemoveItem(f.items[index].Item)
 }
 
 // ResizeItem sets a new size for the item(s) with the given primitive. If there
