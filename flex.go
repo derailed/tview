@@ -84,6 +84,14 @@ func (f *Flex) AddItemAtIndex(index int, item Primitive, fixedSize, proportion i
 	return f
 }
 
+// ItemAt returns the primitive at the given index.
+func (f *Flex) ItemAt(index int) Primitive {
+	if index >= len(f.items) {
+		return nil
+	}
+	return f.items[index].Item
+}
+
 // AddItem adds a new item to the container. The "fixedSize" argument is a width
 // or height that may not be changed by the layout algorithm. A value of 0 means
 // that its size is flexible and may be changed. The "proportion" argument
