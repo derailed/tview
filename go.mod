@@ -6,7 +6,7 @@ require (
 	github.com/gdamore/tcell v1.3.0
 	github.com/lucasb-eyer/go-colorful v1.0.2
 	github.com/mattn/go-runewidth v0.0.5
-	github.com/rivo/tview v0.0.0-20191018201909-e35f620ad35f
+	github.com/rivo/tview v0.0.0-20191018115645-bacbf5155bc1
 	github.com/rivo/uniseg v0.1.0
 )
 
