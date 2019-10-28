@@ -6,9 +6,8 @@ require (
 	github.com/gdamore/tcell v1.1.1
 	github.com/lucasb-eyer/go-colorful v0.0.0-20181028223441-12d3b2882a08
 	github.com/mattn/go-runewidth v0.0.4
-	github.com/rivo/tview v0.0.0-20190213202703-b373355e9db4
-	github.com/rivo/uniseg v0.0.0-20190313204849-f699dde9c340
-	github.com/rs/zerolog v1.14.3
+	github.com/rivo/tview v0.0.0-20191018095205-727590c5006e
+	github.com/rivo/uniseg v0.1.0
 )
 
 go 1.13
