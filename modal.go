@@ -120,6 +120,12 @@ func (m *Modal) AddButtons(labels []string) *Modal {
 	return m
 }
 
+// SetTitle adds a title to the modal.
+func (m *Modal) SetTitle(t string) {
+	m.frame.SetTitle(t)
+	m.frame.SetTitleColor(Styles.PrimaryTextColor)
+}
+
 // ClearButtons removes all buttons from the window.
 func (m *Modal) ClearButtons() *Modal {
 	m.form.ClearButtons()

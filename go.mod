@@ -8,7 +8,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.5
 	github.com/rivo/tview v0.0.0-20191018115645-bacbf5155bc1
 	github.com/rivo/uniseg v0.1.0
-	github.com/rs/zerolog v1.17.2
 )
 
 go 1.13

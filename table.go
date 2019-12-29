@@ -996,81 +996,13 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		// Movement functions.
 		previouslySelectedRow, previouslySelectedColumn := t.selectedRow, t.selectedColumn
 		var (
-			getCell = func(row, column int) *TableCell {
-				if row < 0 || column < 0 || row >= len(t.cells) || column >= len(t.cells[row]) {
-					return nil
-				}
-				return t.cells[row][column]
-			}
-
-			previous = func() {
-				for t.selectedRow >= 0 {
-					cell := getCell(t.selectedRow, t.selectedColumn)
-					if cell == nil || !cell.NotSelectable {
-						return
-					}
-					t.selectedColumn--
-					if t.selectedColumn < 0 {
-						t.selectedColumn = t.lastColumn
-						t.selectedRow--
-					}
-				}
-			}
-
-			next = func() {
-				if t.selectedColumn > t.lastColumn {
-					t.selectedColumn = 0
-					t.selectedRow++
-					if t.selectedRow >= len(t.cells) {
-						t.selectedRow = len(t.cells) - 1
-					}
-				}
-				for t.selectedRow < len(t.cells) {
-					cell := getCell(t.selectedRow, t.selectedColumn)
-					if cell == nil || !cell.NotSelectable {
-						return
-					}
-					t.selectedColumn++
-					if t.selectedColumn > t.lastColumn {
-						t.selectedColumn = 0
-						t.selectedRow++
-					}
-				}
-				t.selectedColumn = t.lastColumn
-				t.selectedRow = len(t.cells) - 1
-				previous()
-			}
-
-			home = func() {
-				if t.rowsSelectable {
-					t.selectedRow = 0
-					t.selectedColumn = 0
-					next()
-				} else {
-					t.trackEnd = false
-					t.rowOffset = 0
-					t.columnOffset = 0
-				}
-			}
-
-			end = func() {
-				if t.rowsSelectable {
-					t.selectedRow = len(t.cells) - 1
-					t.selectedColumn = t.lastColumn
-					previous()
-				} else {
-					t.trackEnd = true
-					t.columnOffset = 0
-				}
-			}
-
 			down = func() {
 				if t.rowsSelectable {
 					t.selectedRow++
 					if t.selectedRow >= len(t.cells) {
 						t.selectedRow = len(t.cells) - 1
 					}
-					next()
+					t.next()
 				} else {
 					t.rowOffset++
 				}
@@ -1082,7 +1014,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 					if t.selectedRow < 0 {
 						t.selectedRow = 0
 					}
-					previous()
+					t.previous()
 				} else {
 					t.trackEnd = false
 					t.rowOffset--
@@ -1095,7 +1027,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 					if t.selectedColumn < 0 {
 						t.selectedColumn = 0
 					}
-					previous()
+					t.previous()
 				} else {
 					t.columnOffset--
 				}
@@ -1107,34 +1039,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 					if t.selectedColumn > t.lastColumn {
 						t.selectedColumn = t.lastColumn
 					}
-					next()
+					t.next()
 				} else {
 					t.columnOffset++
-				}
-			}
-
-			pageDown = func() {
-				if t.rowsSelectable {
-					t.selectedRow += t.visibleRows
-					if t.selectedRow >= len(t.cells) {
-						t.selectedRow = len(t.cells) - 1
-					}
-					next()
-				} else {
-					t.rowOffset += t.visibleRows
-				}
-			}
-
-			pageUp = func() {
-				if t.rowsSelectable {
-					t.selectedRow -= t.visibleRows
-					if t.selectedRow < 0 {
-						t.selectedRow = 0
-					}
-					previous()
-				} else {
-					t.trackEnd = false
-					t.rowOffset -= t.visibleRows
 				}
 			}
 		)
@@ -1143,9 +1050,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'g':
-				home()
+				t.ScrollToBeginning()
 			case 'G':
-				end()
+				t.ScrollToEnd()
 			case 'j':
 				down()
 			case 'k':
@@ -1156,9 +1063,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 				right()
 			}
 		case tcell.KeyHome:
-			home()
+			t.ScrollToBeginning()
 		case tcell.KeyEnd:
-			end()
+			t.ScrollToEnd()
 		case tcell.KeyUp:
 			up()
 		case tcell.KeyDown:
@@ -1168,9 +1075,9 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 		case tcell.KeyRight:
 			right()
 		case tcell.KeyPgDn, tcell.KeyCtrlF:
-			pageDown()
+			t.PageDown()
 		case tcell.KeyPgUp, tcell.KeyCtrlB:
-			pageUp()
+			t.PageUp()
 		case tcell.KeyEnter:
 			if (t.rowsSelectable || t.columnsSelectable) && t.selected != nil {
 				t.selected(t.selectedRow, t.selectedColumn)
