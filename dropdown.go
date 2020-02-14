@@ -106,6 +106,11 @@ func NewDropDown() *DropDown {
 	return d
 }
 
+// GetList returns the selection list.
+func (d *DropDown) GetList() *List {
+	return d.list
+}
+
 // SetCurrentOption sets the index of the currently selected option. This may
 // be a negative value to indicate that no option is currently selected. Calling
 // this function will also trigger the "selected" callback (if there is one).
