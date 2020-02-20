@@ -242,6 +242,11 @@ func (g *Grid) GetOffset() (rows, columns int) {
 	return g.rowOffset, g.columnOffset
 }
 
+// GetItem at that index.
+func (g *Grid) GetItem(i int) *gridItem {
+	return g.items[i]
+}
+
 // Focus is called when this primitive receives focus.
 func (g *Grid) Focus(delegate func(p Primitive)) {
 	for _, item := range g.items {
