@@ -177,6 +177,12 @@ type TextView struct {
 	// MaxBuffer keeps only that many lines in the buffer for large text display.
 	// The text buffer will be trimmed once the limit is reached.
 	maxBuffer int
+
+	// cursorIndex tracks cursor position.
+	cursorIndex int
+
+	// showCursor tracks visual cursor.
+	showCursor bool
 }
 
 // NewTextView returns a new text view.
@@ -186,6 +192,7 @@ func NewTextView() *TextView {
 		highlights:     make(map[string]struct{}),
 		lineOffset:     -1,
 		scrollable:     true,
+		cursorIndex:    4,
 		align:          AlignLeft,
 		wrap:           true,
 		textColor:      Styles.PrimaryTextColor,
@@ -193,6 +200,16 @@ func NewTextView() *TextView {
 		regions:        false,
 		dynamicColors:  false,
 	}
+}
+
+// ShowCusor toggle cursor visibility.
+func (t *TextView) ShowCursor(f bool) {
+	t.showCursor = f
+}
+
+// SetCursor tracks cursor position.
+func (t *TextView) SetCursorIndex(i int) {
+	t.cursorIndex = i
 }
 
 // SetHighlightColor sets the region highlight color.
@@ -976,6 +993,10 @@ func (t *TextView) Draw(screen tcell.Screen) {
 
 			// Advance.
 			posX += screenWidth
+			if t.showCursor {
+				screen.ShowCursor(x+t.cursorIndex, y)
+			}
+
 			return false
 		})
 	}
