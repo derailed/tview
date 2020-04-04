@@ -995,6 +995,8 @@ func (t *TextView) Draw(screen tcell.Screen) {
 			posX += screenWidth
 			if t.showCursor {
 				screen.ShowCursor(x+t.cursorIndex, y)
+			} else {
+				screen.HideCursor()
 			}
 
 			return false
