@@ -128,10 +128,30 @@ func (b *Button) InputHandler() func(event *tcell.EventKey, setFocus func(p Prim
 			if b.selected != nil {
 				b.selected()
 			}
-		case tcell.KeyBacktab, tcell.KeyTab, tcell.KeyEscape, tcell.KeyDown, tcell.KeyUp, tcell.KeyLeft, tcell.KeyRight: // Leave. No action.
+		case tcell.KeyBacktab, tcell.KeyTab, tcell.KeyEscape: // Leave. No action.
 			if b.blur != nil {
 				b.blur(key)
 			}
 		}
+	})
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (b *Button) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return b.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		if !b.InRect(event.Position()) {
+			return false, nil
+		}
+
+		// Process mouse event.
+		if action == MouseLeftClick {
+			setFocus(b)
+			if b.selected != nil {
+				b.selected()
+			}
+			consumed = true
+		}
+
+		return
 	})
 }

@@ -12,7 +12,7 @@ import (
 type Modal struct {
 	*Box
 
-	// The framed embedded in the modal.
+	// The frame embedded in the modal.
 	frame *Frame
 
 	// The form embedded in the modal's frame.
@@ -120,15 +120,15 @@ func (m *Modal) AddButtons(labels []string) *Modal {
 	return m
 }
 
-// SetTitle adds a title to the modal.
-func (m *Modal) SetTitle(t string) {
-	m.frame.SetTitle(t)
-	m.frame.SetTitleColor(Styles.PrimaryTextColor)
-}
-
 // ClearButtons removes all buttons from the window.
 func (m *Modal) ClearButtons() *Modal {
 	m.form.ClearButtons()
+	return m
+}
+
+// SetFocus shifts the focus to the button with the given index.
+func (m *Modal) SetFocus(index int) *Modal {
+	m.form.SetFocus(index)
 	return m
 }
 
@@ -174,4 +174,17 @@ func (m *Modal) Draw(screen tcell.Screen) {
 	// Draw the frame.
 	m.frame.SetRect(x, y, width, height)
 	m.frame.Draw(screen)
+}
+
+// MouseHandler returns the mouse handler for this primitive.
+func (m *Modal) MouseHandler() func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+	return m.WrapMouseHandler(func(action MouseAction, event *tcell.EventMouse, setFocus func(p Primitive)) (consumed bool, capture Primitive) {
+		// Pass mouse events on to the form.
+		consumed, capture = m.form.MouseHandler()(action, event, setFocus)
+		if !consumed && action == MouseLeftClick && m.InRect(event.Position()) {
+			setFocus(m)
+			consumed = true
+		}
+		return
+	})
 }
