@@ -293,8 +293,6 @@ func (a *Application) Run() error {
 		}
 	}()
 
-	var lastTime time.Time
-	var evtCount int
 	// Start event loop.
 EventLoop:
 	for {
@@ -331,18 +329,6 @@ EventLoop:
 						handler(event, func(p Primitive) {
 							a.SetFocus(p)
 						})
-						if event.Key() == tcell.KeyUp || event.Key() == tcell.KeyDown {
-							evtCount++
-							if lastTime.IsZero() {
-								lastTime = event.When()
-							}
-							dur := event.When().Sub(lastTime)
-							lastTime = event.When()
-							if dur < 100*time.Millisecond && evtCount < 10 {
-								continue
-							}
-							evtCount = 0
-						}
 						a.draw()
 					}
 				}

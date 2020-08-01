@@ -1084,7 +1084,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 
 			home = func() {
 				if t.rowsSelectable {
-					t.selectedRow = 0
+					t.selectedRow = 1
 					t.selectedColumn = 0
 					next()
 				} else {
@@ -1180,7 +1180,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 				if t.rowsSelectable {
 					t.selectedRow -= offsetAmount
 					if t.selectedRow < 0 {
-						t.selectedRow = 0
+						t.selectedRow = 1
 					}
 					previous()
 				} else {
