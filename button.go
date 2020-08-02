@@ -128,7 +128,7 @@ func (b *Button) InputHandler() func(event *tcell.EventKey, setFocus func(p Prim
 			if b.selected != nil {
 				b.selected()
 			}
-		case tcell.KeyBacktab, tcell.KeyTab, tcell.KeyEscape: // Leave. No action.
+		case tcell.KeyBacktab, tcell.KeyTab, tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight, tcell.KeyEscape: // Leave. No action.
 			if b.blur != nil {
 				b.blur(key)
 			}
