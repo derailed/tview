@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -280,7 +279,6 @@ func (a *Application) Run() error {
 				return
 			}
 
-			log.Debug().Msgf("INIT SCREEN!!")
 			// Initialize and draw this screen.
 			if err := screen.Init(); err != nil {
 				panic(err)
