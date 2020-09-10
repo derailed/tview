@@ -212,10 +212,9 @@ func (a *Application) EnableMouse(enable bool) *Application {
 // when Stop() was called.
 func (a *Application) Run() error {
 	var (
-		err           error
-		width, height int         // The current size of the screen.
-		lastRedraw    time.Time   // The time the screen was last redrawn.
-		redrawTimer   *time.Timer // A timer to schedule the next redraw.
+		err         error
+		lastRedraw  time.Time   // The time the screen was last redrawn.
+		redrawTimer *time.Timer // A timer to schedule the next redraw.
 	)
 	a.Lock()
 
@@ -305,17 +304,19 @@ EventLoop:
 			switch event := event.(type) {
 			case *tcell.EventKey:
 				a.RLock()
-				p := a.focus
+				root := a.root
 				inputCapture := a.inputCapture
 				a.RUnlock()
 
 				// Intercept keys.
+				var draw bool
 				if inputCapture != nil {
 					event = inputCapture(event)
 					if event == nil {
 						a.draw()
 						continue // Don't forward event.
 					}
+					draw = true
 				}
 
 				// Ctrl-C closes the application.
@@ -323,14 +324,19 @@ EventLoop:
 					a.Stop()
 				}
 
-				// Pass other key events to the currently focused primitive.
-				if p != nil {
-					if handler := p.InputHandler(); handler != nil {
+				// Pass other key events to the root primitive.
+				if root != nil && root.GetFocusable().HasFocus() {
+					if handler := root.InputHandler(); handler != nil {
 						handler(event, func(p Primitive) {
 							a.SetFocus(p)
 						})
-						a.draw()
+						draw = true
 					}
+				}
+
+				// Redraw.
+				if draw {
+					a.draw()
 				}
 			case *tcell.EventResize:
 				if time.Since(lastRedraw) < redrawPause {
@@ -347,11 +353,6 @@ EventLoop:
 				if screen == nil {
 					continue
 				}
-				newWidth, newHeight := screen.Size()
-				if newWidth == width && newHeight == height {
-					continue
-				}
-				width, height = newWidth, newHeight
 				lastRedraw = time.Now()
 				screen.Clear()
 				a.draw()
@@ -372,6 +373,7 @@ EventLoop:
 			update.done <- struct{}{}
 		}
 	}
+
 	// Wait for the event loop to finish.
 	wg.Wait()
 	a.screen = nil
