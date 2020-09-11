@@ -287,8 +287,10 @@ func (a *Application) Run() error {
 			// We have a new screen. Keep going.
 			a.Lock()
 			a.screen = screen
+			if a.enableMouse {
+				a.screen.EnableMouse()
+			}
 			a.Unlock()
-
 			a.draw()
 		}
 	}()
