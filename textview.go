@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 	colorful "github.com/lucasb-eyer/go-colorful"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
@@ -234,7 +234,9 @@ func (t *TextView) SetCursorIndex(i int) {
 // SetHighlightColor sets the region highlight color.
 func (t *TextView) SetHighlightColor(c tcell.Color) {
 	t.highlightColor = c
-} // SetScrollable sets the flag that decides whether or not the text view is
+}
+
+// SetScrollable sets the flag that decides whether or not the text view is
 // scrollable. If true, text is kept in a buffer and can be navigated. If false,
 // the last line will always be visible.
 func (t *TextView) SetScrollable(scrollable bool) *TextView {
@@ -295,12 +297,12 @@ func (t *TextView) SetText(text string) *TextView {
 	return t
 }
 
-// GetText returns the current text of this text view. If "stripTags" is set
+// GetText returns the current text of this text view. If "stripAllTags" is set
 // to true, any region/color tags are stripped from the text.
-func (t *TextView) GetText(stripTags bool) string {
+func (t *TextView) GetText(stripAllTags bool) string {
 	// Get the buffer.
 	buffer := t.buffer
-	if !stripTags {
+	if !stripAllTags {
 		buffer = append(buffer, t.recentBytes)
 	}
 
@@ -308,7 +310,7 @@ func (t *TextView) GetText(stripTags bool) string {
 	text := bytes.Join(buffer, []byte{'\n'})
 
 	// Strip from tags if required.
-	if stripTags {
+	if stripAllTags {
 		if t.regions {
 			text = regionPattern.ReplaceAll(text, []byte(""))
 		}

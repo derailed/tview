@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 )
 
 const (
@@ -283,7 +283,6 @@ func (a *Application) Run() error {
 			if err := screen.Init(); err != nil {
 				panic(err)
 			}
-
 			// We have a new screen. Keep going.
 			a.Lock()
 			a.screen = screen

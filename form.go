@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 )
 
 // DefaultFormFieldWidth is the default field screen width of form elements
@@ -484,6 +484,10 @@ func (f *Form) Draw(screen tcell.Screen) {
 		if buttonWidth > space {
 			buttonWidth = space
 		}
+		button.SetLabelColor(f.buttonTextColor).
+			SetLabelColorActivated(f.buttonBackgroundColor).
+			SetBackgroundColorActivated(f.buttonTextColor).
+			SetBackgroundColor(f.buttonBackgroundColor)
 
 		buttonIndex := index + len(f.items)
 		positions[buttonIndex].x = x

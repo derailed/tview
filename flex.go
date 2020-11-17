@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 )
 
 // Configuration values.
@@ -90,9 +90,7 @@ func (f *Flex) ItemAt(index int) Primitive {
 		return nil
 	}
 	return f.items[index].Item
-}
-
-// AddItem adds a new item to the container. The "fixedSize" argument is a width
+} // AddItem adds a new item to the container. The "fixedSize" argument is a width
 // or height that may not be changed by the layout algorithm. A value of 0 means
 // that its size is flexible and may be changed. The "proportion" argument
 // defines the relative size of the item compared to other flexible-size items.
