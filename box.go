@@ -22,6 +22,7 @@ type Box struct {
 
 	// Border padding.
 	paddingTop, paddingBottom, paddingLeft, paddingRight int
+
 	// The bordercolor when the box has focus
 	borderFocusColor tcell.Color
 
@@ -31,6 +32,9 @@ type Box struct {
 	// Whether or not a border is drawn, reducing the box's space for content by
 	// two in width and height.
 	border bool
+
+	// The color of the border.
+	borderColor tcell.Color
 
 	// The border style.
 	borderStyle tcell.Style
@@ -348,11 +352,10 @@ func (b *Box) Draw(screen tcell.Screen) {
 
 	// Draw border.
 	if b.border && b.width >= 2 && b.height >= 2 {
-
-		border := background.Foreground(b.borderColor) | tcell.Style(b.borderAttributes)
 		var vertical, horizontal, topLeft, topRight, bottomLeft, bottomRight rune
+		border := background.Foreground(b.borderColor)
 		if b.focus.HasFocus() {
-			border = background.Foreground(b.borderFocusColor) | tcell.Style(b.borderAttributes)
+			border = background.Foreground(b.borderFocusColor)
 		}
 		horizontal = Borders.Horizontal
 		vertical = Borders.Vertical
@@ -361,17 +364,17 @@ func (b *Box) Draw(screen tcell.Screen) {
 		bottomLeft = Borders.BottomLeft
 		bottomRight = Borders.BottomRight
 		for x := b.x + 1; x < b.x+b.width-1; x++ {
-			screen.SetContent(x, b.y, horizontal, nil, b.borderStyle)
-			screen.SetContent(x, b.y+b.height-1, horizontal, nil, b.borderStyle)
+			screen.SetContent(x, b.y, horizontal, nil, border)
+			screen.SetContent(x, b.y+b.height-1, horizontal, nil, border)
 		}
 		for y := b.y + 1; y < b.y+b.height-1; y++ {
-			screen.SetContent(b.x, y, vertical, nil, b.borderStyle)
-			screen.SetContent(b.x+b.width-1, y, vertical, nil, b.borderStyle)
+			screen.SetContent(b.x, y, vertical, nil, border)
+			screen.SetContent(b.x+b.width-1, y, vertical, nil, border)
 		}
-		screen.SetContent(b.x, b.y, topLeft, nil, b.borderStyle)
-		screen.SetContent(b.x+b.width-1, b.y, topRight, nil, b.borderStyle)
-		screen.SetContent(b.x, b.y+b.height-1, bottomLeft, nil, b.borderStyle)
-		screen.SetContent(b.x+b.width-1, b.y+b.height-1, bottomRight, nil, b.borderStyle)
+		screen.SetContent(b.x, b.y, topLeft, nil, border)
+		screen.SetContent(b.x+b.width-1, b.y, topRight, nil, border)
+		screen.SetContent(b.x, b.y+b.height-1, bottomLeft, nil, border)
+		screen.SetContent(b.x+b.width-1, b.y+b.height-1, bottomRight, nil, border)
 
 		// Draw title.
 		if b.title != "" && b.width >= 4 {
