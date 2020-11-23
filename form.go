@@ -484,10 +484,6 @@ func (f *Form) Draw(screen tcell.Screen) {
 		if buttonWidth > space {
 			buttonWidth = space
 		}
-		button.SetLabelColor(f.buttonTextColor).
-			SetLabelColorActivated(f.buttonBackgroundColor).
-			SetBackgroundColorActivated(f.buttonTextColor).
-			SetBackgroundColor(f.buttonBackgroundColor)
 
 		buttonIndex := index + len(f.items)
 		positions[buttonIndex].x = x
