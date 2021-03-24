@@ -193,7 +193,7 @@ func (a *Application) SetScreen(screen tcell.Screen) *Application {
 	return a
 }
 
-// EnableMouse enables mouse events.
+// EnableMouse enables mouse events or disables them (if "false" is provided).
 func (a *Application) EnableMouse(enable bool) *Application {
 	a.Lock()
 	defer a.Unlock()
@@ -279,17 +279,19 @@ func (a *Application) Run() error {
 				return
 			}
 
+			// We have a new screen. Keep going.
+			a.Lock()
+			a.screen = screen
+			enableMouse := a.enableMouse
+			a.Unlock()
+
 			// Initialize and draw this screen.
 			if err := screen.Init(); err != nil {
 				panic(err)
 			}
-			// We have a new screen. Keep going.
-			a.Lock()
-			a.screen = screen
-			if a.enableMouse {
-				a.screen.EnableMouse()
+			if enableMouse {
+				screen.EnableMouse()
 			}
-			a.Unlock()
 			a.draw()
 		}
 	}()
@@ -327,7 +329,7 @@ EventLoop:
 				}
 
 				// Pass other key events to the root primitive.
-				if root != nil && root.GetFocusable().HasFocus() {
+				if root != nil && root.HasFocus() {
 					if handler := root.InputHandler(); handler != nil {
 						handler(event, func(p Primitive) {
 							a.SetFocus(p)
@@ -444,9 +446,9 @@ func (a *Application) fireMouseActions(event *tcell.EventMouse) (consumed, isMou
 		button                  tcell.ButtonMask
 		down, up, click, dclick MouseAction
 	}{
-		{tcell.Button1, MouseLeftDown, MouseLeftUp, MouseLeftClick, MouseLeftDoubleClick},
-		{tcell.Button2, MouseMiddleDown, MouseMiddleUp, MouseMiddleClick, MouseMiddleDoubleClick},
-		{tcell.Button3, MouseRightDown, MouseRightUp, MouseRightClick, MouseRightDoubleClick},
+		{tcell.ButtonPrimary, MouseLeftDown, MouseLeftUp, MouseLeftClick, MouseLeftDoubleClick},
+		{tcell.ButtonMiddle, MouseMiddleDown, MouseMiddleUp, MouseMiddleClick, MouseMiddleDoubleClick},
+		{tcell.ButtonSecondary, MouseRightDown, MouseRightUp, MouseRightClick, MouseRightDoubleClick},
 	} {
 		if buttonChanges&buttonEvent.button != 0 {
 			if buttons&buttonEvent.button != 0 {
@@ -515,6 +517,14 @@ func (a *Application) Suspend(f func()) bool {
 
 	// Wait for "f" to return.
 	f()
+
+	// If stop was called in the meantime (a.screen is nil), we're done already.
+	a.RLock()
+	screen = a.screen
+	a.RUnlock()
+	if screen == nil {
+		return true
+	}
 
 	// Make a new screen.
 	var err error

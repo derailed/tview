@@ -17,6 +17,10 @@ type Box struct {
 	// The position of the rect.
 	x, y, width, height int
 
+	// The color of the border.
+	// BOZO!!
+	borderColor tcell.Color
+
 	// The inner rect reserved for the box's content.
 	innerX, innerY, innerWidth, innerHeight int
 
@@ -24,6 +28,7 @@ type Box struct {
 	paddingTop, paddingBottom, paddingLeft, paddingRight int
 
 	// The bordercolor when the box has focus
+	// BOZO!!
 	borderFocusColor tcell.Color
 
 	// The box's background color.
@@ -32,9 +37,6 @@ type Box struct {
 	// Whether or not a border is drawn, reducing the box's space for content by
 	// two in width and height.
 	border bool
-
-	// The color of the border.
-	borderColor tcell.Color
 
 	// The border style.
 	borderStyle tcell.Style
@@ -50,6 +52,7 @@ type Box struct {
 
 	// Provides a way to find out if this box has focus. We always go through
 	// this interface because it may be overridden by implementing classes.
+	// BOZO!!
 	focus Focusable
 
 	// Whether or not this box has focus.
@@ -72,16 +75,24 @@ type Box struct {
 // NewBox returns a Box without a border.
 func NewBox() *Box {
 	b := &Box{
-		width:            15,
-		height:           10,
-		innerX:           -1, // Mark as uninitialized.
-		backgroundColor:  Styles.PrimitiveBackgroundColor,
-		borderFocusColor: Styles.FocusColor,
-		borderStyle:      tcell.StyleDefault.Foreground(Styles.BorderColor),
-		titleColor:       Styles.TitleColor,
-		titleAlign:       AlignCenter,
+		width:           15,
+		height:          10,
+		innerX:          -1, // Mark as uninitialized.
+		backgroundColor: Styles.PrimitiveBackgroundColor,
+		borderStyle:     tcell.StyleDefault.Foreground(Styles.BorderColor),
+		titleColor:      Styles.TitleColor,
+		titleAlign:      AlignCenter,
 	}
+	// BOZO!!
 	b.focus = b
+
+	return b
+}
+
+// SetBorderFocusColor sets the box's border color.
+// BOZO!!
+func (b *Box) SetBorderFocusColor(color tcell.Color) *Box {
+	b.borderFocusColor = color
 	return b
 }
 
@@ -275,12 +286,6 @@ func (b *Box) SetBorderColor(color tcell.Color) *Box {
 	return b
 }
 
-// SetBorderFocusColor sets the box's border color.
-func (b *Box) SetBorderFocusColor(color tcell.Color) *Box {
-	b.borderFocusColor = color
-	return b
-}
-
 // SetBorderAttributes sets the border's style attributes. You can combine
 // different attributes using bitmask operations:
 //
@@ -333,6 +338,16 @@ func (b *Box) SetTitleAlign(align int) *Box {
 
 // Draw draws this primitive onto the screen.
 func (b *Box) Draw(screen tcell.Screen) {
+	b.DrawForSubclass(screen, b)
+}
+
+// DrawForSubclass draws this box under the assumption that primitive p is a
+// subclass of this box. This is needed e.g. to draw proper box frames which
+// depend on the subclass's focus.
+//
+// Only call this function from your own custom primitives. It is not needed in
+// applications that have no custom primitives.
+func (b *Box) DrawForSubclass(screen tcell.Screen, p Primitive) {
 	// Don't draw anything if there is no space.
 	if b.width <= 0 || b.height <= 0 {
 		return
@@ -342,15 +357,18 @@ func (b *Box) Draw(screen tcell.Screen) {
 
 	// Fill background.
 	background := def.Background(b.backgroundColor)
-	for y := b.y; y < b.y+b.height; y++ {
-		for x := b.x; x < b.x+b.width; x++ {
-			screen.SetContent(x, y, ' ', nil, background)
+	if b.backgroundColor != tcell.ColorDefault {
+		for y := b.y; y < b.y+b.height; y++ {
+			for x := b.x; x < b.x+b.width; x++ {
+				screen.SetContent(x, y, ' ', nil, background)
+			}
 		}
 	}
 
 	// Draw border.
 	if b.border && b.width >= 2 && b.height >= 2 {
 		var vertical, horizontal, topLeft, topRight, bottomLeft, bottomRight rune
+		// BOZO!!
 		border := background.Foreground(b.borderColor)
 		if b.focus.HasFocus() {
 			border = background.Foreground(b.borderFocusColor)
@@ -408,9 +426,4 @@ func (b *Box) Blur() {
 // HasFocus returns whether or not this primitive has focus.
 func (b *Box) HasFocus() bool {
 	return b.hasFocus
-}
-
-// GetFocusable returns the item's Focusable.
-func (b *Box) GetFocusable() Focusable {
-	return b.focus
 }

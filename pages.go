@@ -37,12 +37,12 @@ func NewPages() *Pages {
 	p := &Pages{
 		Box: NewBox(),
 	}
-	p.focus = p
 	return p
 }
 
 // GetPrimitive returns the corresponding primitive from a named page or nil
 // if not found.
+// BOZO!!
 func (p *Pages) GetPrimitive(name string) Primitive {
 	for _, p := range p.pages {
 		if p.Name == name {
@@ -53,6 +53,7 @@ func (p *Pages) GetPrimitive(name string) Primitive {
 }
 
 // CurrentPage fetches the currently visible page.
+// BOZO!!
 func (p *Pages) CurrentPage() *page {
 	for _, pa := range p.pages {
 		if pa.Visible == true {
@@ -261,7 +262,7 @@ func (p *Pages) GetFrontPage() (name string, item Primitive) {
 // HasFocus returns whether or not this primitive has focus.
 func (p *Pages) HasFocus() bool {
 	for _, page := range p.pages {
-		if page.Item.GetFocusable().HasFocus() {
+		if page.Item.HasFocus() {
 			return true
 		}
 	}
@@ -287,7 +288,7 @@ func (p *Pages) Focus(delegate func(p Primitive)) {
 
 // Draw draws this primitive onto the screen.
 func (p *Pages) Draw(screen tcell.Screen) {
-	p.Box.Draw(screen)
+	p.Box.DrawForSubclass(screen, p)
 	for _, page := range p.pages {
 		if !page.Visible {
 			continue
@@ -326,7 +327,7 @@ func (p *Pages) MouseHandler() func(action MouseAction, event *tcell.EventMouse,
 func (p *Pages) InputHandler() func(event *tcell.EventKey, setFocus func(p Primitive)) {
 	return p.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p Primitive)) {
 		for _, page := range p.pages {
-			if page.Item.GetFocusable().HasFocus() {
+			if page.Item.HasFocus() {
 				if handler := page.Item.InputHandler(); handler != nil {
 					handler(event, setFocus)
 					return
