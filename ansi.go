@@ -28,7 +28,6 @@ type ansi struct {
 
 	// The current state of the parser. One of the ansi constants.
 	state int
-
 	// foreground, background reset colors
 	fg, bg string
 }

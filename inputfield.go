@@ -249,11 +249,13 @@ func (i *InputField) Autocomplete() *InputField {
 
 	// Fill it with the entries.
 	currentEntry := -1
+	suffixLength := 9999 // I'm just waiting for the day somebody opens an issue with this number being too small.
 	i.autocompleteList.Clear()
 	for index, entry := range entries {
 		i.autocompleteList.AddItem(entry, "", 0, nil)
-		if currentEntry < 0 && entry == i.text {
+		if strings.HasPrefix(entry, i.text) && len(entry)-len(i.text) < suffixLength {
 			currentEntry = index
+			suffixLength = len(i.text) - len(entry)
 		}
 	}
 
@@ -303,7 +305,7 @@ func (i *InputField) SetFinishedFunc(handler func(key tcell.Key)) FormItem {
 
 // Draw draws this primitive onto the screen.
 func (i *InputField) Draw(screen tcell.Screen) {
-	i.Box.Draw(screen)
+	i.Box.DrawForSubclass(screen, i)
 
 	// Prepare
 	x, y, width, height := i.GetInnerRect()
@@ -428,7 +430,7 @@ func (i *InputField) Draw(screen tcell.Screen) {
 	}
 
 	// Set cursor.
-	if i.focus.HasFocus() {
+	if i.HasFocus() {
 		screen.ShowCursor(x+cursorScreenPos, y)
 	}
 }
@@ -479,6 +481,21 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 			i.text = newText
 			i.cursorPos += len(string(r))
 			return true
+		}
+
+		// Change the autocomplete selection.
+		autocompleteSelect := func(offset int) {
+			count := i.autocompleteList.GetItemCount()
+			newEntry := i.autocompleteList.GetCurrentItem() + offset
+			if newEntry >= count {
+				newEntry = 0
+			} else if newEntry < 0 {
+				newEntry = count - 1
+			}
+			i.autocompleteList.SetCurrentItem(newEntry)
+			currentText, _ = i.autocompleteList.GetItemText(newEntry) // Don't trigger changed function twice.
+			currentText = stripTags(currentText)
+			i.SetText(currentText)
 		}
 
 		// Finish up.
@@ -537,7 +554,7 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 			if i.offset >= i.cursorPos {
 				i.offset = 0
 			}
-		case tcell.KeyDelete: // Delete character after the cursor.
+		case tcell.KeyDelete, tcell.KeyCtrlD: // Delete character after the cursor.
 			iterateString(i.text[i.cursorPos:], func(main rune, comb []rune, textPos, textWidth, screenPos, screenWidth int) bool {
 				i.text = i.text[:i.cursorPos] + i.text[i.cursorPos+textWidth:]
 				return true
@@ -548,46 +565,48 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 			} else {
 				moveLeft()
 			}
+		case tcell.KeyCtrlB:
+			moveLeft()
 		case tcell.KeyRight:
 			if event.Modifiers()&tcell.ModAlt > 0 {
 				moveWordRight()
 			} else {
 				moveRight()
 			}
+		case tcell.KeyCtrlF:
+			moveRight()
 		case tcell.KeyHome, tcell.KeyCtrlA:
 			home()
 		case tcell.KeyEnd, tcell.KeyCtrlE:
 			end()
-		case tcell.KeyEnter, tcell.KeyEscape: // We might be done.
+		case tcell.KeyEnter:
+			if i.autocompleteList != nil {
+				autocompleteSelect(0)
+				i.autocompleteList = nil
+			} else {
+				finish(key)
+			}
+		case tcell.KeyEscape:
 			if i.autocompleteList != nil {
 				i.autocompleteList = nil
 			} else {
 				finish(key)
 			}
-		case tcell.KeyDown, tcell.KeyTab: // Autocomplete selection.
+		case tcell.KeyTab:
 			if i.autocompleteList != nil {
-				count := i.autocompleteList.GetItemCount()
-				newEntry := i.autocompleteList.GetCurrentItem() + 1
-				if newEntry >= count {
-					newEntry = 0
-				}
-				i.autocompleteList.SetCurrentItem(newEntry)
-				currentText, _ = i.autocompleteList.GetItemText(newEntry) // Don't trigger changed function twice.
-				currentText = stripTags(currentText)
-				i.SetText(currentText)
+				autocompleteSelect(0)
+			} else {
+				finish(key)
+			}
+		case tcell.KeyDown:
+			if i.autocompleteList != nil {
+				autocompleteSelect(1)
 			} else {
 				finish(key)
 			}
 		case tcell.KeyUp, tcell.KeyBacktab: // Autocomplete selection.
 			if i.autocompleteList != nil {
-				newEntry := i.autocompleteList.GetCurrentItem() - 1
-				if newEntry < 0 {
-					newEntry = i.autocompleteList.GetItemCount() - 1
-				}
-				i.autocompleteList.SetCurrentItem(newEntry)
-				currentText, _ = i.autocompleteList.GetItemText(newEntry) // Don't trigger changed function twice.
-				currentText = stripTags(currentText)
-				i.SetText(currentText)
+				autocompleteSelect(-1)
 			} else {
 				finish(key)
 			}

@@ -42,17 +42,32 @@ type Flex struct {
 // direction set to FlexColumn. To add primitives to this layout, see AddItem().
 // To change the direction, see SetDirection().
 //
-// Note that Box, the superclass of Flex, will have its background color set to
-// transparent so that any nil flex items will leave their background unchanged.
-// To clear a Flex's background before any items are drawn, set it to the
-// desired color:
+// Note that Box, the superclass of Flex, will not clear its contents so that
+// any nil flex items will leave their background unchanged. To clear a Flex's
+// background before any items are drawn, set it to a box with the desired
+// color:
 //
-//   flex.SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+//   flex.Box = NewBox()
 func NewFlex() *Flex {
 	f := &Flex{
-		Box:       NewBox().SetBackgroundColor(tcell.ColorDefault),
 		direction: FlexColumn,
 	}
+	f.Box = NewBox()
+	f.Box.dontClear = true
+	return f
+}
+
+// SetDirection sets the direction in which the contained primitives are
+// distributed. This can be either FlexColumn (default) or FlexRow.
+func (f *Flex) SetDirection(direction int) *Flex {
+	f.direction = direction
+	return f
+}
+
+// SetFullScreen sets the flag which, when true, causes the flex layout to use
+// the entire screen space instead of whatever size it is currently assigned to.
+func (f *Flex) SetFullScreen(fullScreen bool) *Flex {
+	f.fullScreen = fullScreen
 	return f
 }
 
@@ -80,23 +95,8 @@ func (f *Flex) ItemAt(index int) Primitive {
 }
 
 // RemoveItemAtIndex remove an item at the given index.
-// BOZO!!
 func (f *Flex) RemoveItemAtIndex(index int) *Flex {
 	return f.RemoveItem(f.items[index].Item)
-}
-
-// SetDirection sets the direction in which the contained primitives are
-// distributed. This can be either FlexColumn (default) or FlexRow.
-func (f *Flex) SetDirection(direction int) *Flex {
-	f.direction = direction
-	return f
-}
-
-// SetFullScreen sets the flag which, when true, causes the flex layout to use
-// the entire screen space instead of whatever size it is currently assigned to.
-func (f *Flex) SetFullScreen(fullScreen bool) *Flex {
-	f.fullScreen = fullScreen
-	return f
 }
 
 // AddItem adds a new item to the container. The "fixedSize" argument is a width

@@ -45,6 +45,8 @@ type Primitive interface {
 	// Blur is called by the application when the primitive loses focus.
 	Blur()
 
+	// GetFocusable returns the item's Focusable.
+	GetFocusable() Focusable
 	// MouseHandler returns a handler which receives mouse events.
 	// It is called by the Application class.
 	//

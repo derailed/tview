@@ -1,6 +1,8 @@
 package tview
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -33,6 +35,9 @@ type Box struct {
 
 	// The box's background color.
 	backgroundColor tcell.Color
+
+	// If set to true, the background of this box is not cleared while drawing.
+	dontClear bool
 
 	// Whether or not a border is drawn, reducing the box's space for content by
 	// two in width and height.
@@ -270,6 +275,7 @@ func (b *Box) GetMouseCapture() func(action MouseAction, event *tcell.EventMouse
 // SetBackgroundColor sets the box's background color.
 func (b *Box) SetBackgroundColor(color tcell.Color) *Box {
 	b.backgroundColor = color
+	b.borderStyle = b.borderStyle.Background(color)
 	return b
 }
 
@@ -426,4 +432,20 @@ func (b *Box) Blur() {
 // HasFocus returns whether or not this primitive has focus.
 func (b *Box) HasFocus() bool {
 	return b.hasFocus
+}
+
+// GetFocusable returns the item's Focusable.
+func (b *Box) GetFocusable() Focusable {
+	return b.focus
+}
+
+func ToRGB(c tcell.Color) string {
+	r, g, b := c.RGB()
+
+	return fmt.Sprintf("%d:%d:%d", r, g, b)
+}
+
+func ShowBg(s tcell.Style) string {
+	fg, _, _ := s.Decompose()
+	return ToRGB(fg)
 }
