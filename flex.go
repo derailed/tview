@@ -42,18 +42,18 @@ type Flex struct {
 // direction set to FlexColumn. To add primitives to this layout, see AddItem().
 // To change the direction, see SetDirection().
 //
-// Note that Box, the superclass of Flex, will have its background color set to
-// transparent so that any nil flex items will leave their background unchanged.
-// To clear a Flex's background before any items are drawn, set it to the
-// desired color:
+// Note that Box, the superclass of Flex, will not clear its contents so that
+// any nil flex items will leave their background unchanged. To clear a Flex's
+// background before any items are drawn, set it to a box with the desired
+// color:
 //
-//   flex.SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+//   flex.Box = NewBox()
 func NewFlex() *Flex {
 	f := &Flex{
-		Box:       NewBox().SetBackgroundColor(tcell.ColorDefault),
 		direction: FlexColumn,
 	}
-	f.focus = f
+	f.Box = NewBox()
+	f.Box.dontClear = true
 	return f
 }
 
@@ -90,7 +90,14 @@ func (f *Flex) ItemAt(index int) Primitive {
 		return nil
 	}
 	return f.items[index].Item
-} // AddItem adds a new item to the container. The "fixedSize" argument is a width
+}
+
+// RemoveItemAtIndex remove an item at the given index.
+func (f *Flex) RemoveItemAtIndex(index int) *Flex {
+	return f.RemoveItem(f.items[index].Item)
+}
+
+// AddItem adds a new item to the container. The "fixedSize" argument is a width
 // or height that may not be changed by the layout algorithm. A value of 0 means
 // that its size is flexible and may be changed. The "proportion" argument
 // defines the relative size of the item compared to other flexible-size items.
@@ -120,11 +127,6 @@ func (f *Flex) RemoveItem(p Primitive) *Flex {
 	return f
 }
 
-// RemoveItemAtIndex remove an item at the given index.
-func (f *Flex) RemoveItemAtIndex(index int) *Flex {
-	return f.RemoveItem(f.items[index].Item)
-}
-
 // Clear removes all items from the container.
 func (f *Flex) Clear() *Flex {
 	f.items = nil
@@ -146,7 +148,7 @@ func (f *Flex) ResizeItem(p Primitive, fixedSize, proportion int) *Flex {
 
 // Draw draws this primitive onto the screen.
 func (f *Flex) Draw(screen tcell.Screen) {
-	f.Box.Draw(screen)
+	f.Box.DrawForSubclass(screen, f)
 
 	// Calculate size and position of the items.
 
@@ -197,7 +199,7 @@ func (f *Flex) Draw(screen tcell.Screen) {
 		pos += size
 
 		if item.Item != nil {
-			if item.Item.GetFocusable().HasFocus() {
+			if item.Item.HasFocus() {
 				defer item.Item.Draw(screen)
 			} else {
 				item.Item.Draw(screen)
@@ -219,7 +221,7 @@ func (f *Flex) Focus(delegate func(p Primitive)) {
 // HasFocus returns whether or not this primitive has focus.
 func (f *Flex) HasFocus() bool {
 	for _, item := range f.items {
-		if item.Item != nil && item.Item.GetFocusable().HasFocus() {
+		if item.Item != nil && item.Item.HasFocus() {
 			return true
 		}
 	}
@@ -252,7 +254,7 @@ func (f *Flex) MouseHandler() func(action MouseAction, event *tcell.EventMouse, 
 func (f *Flex) InputHandler() func(event *tcell.EventKey, setFocus func(p Primitive)) {
 	return f.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p Primitive)) {
 		for _, item := range f.items {
-			if item.Item != nil && item.Item.GetFocusable().HasFocus() {
+			if item.Item != nil && item.Item.HasFocus() {
 				if handler := item.Item.InputHandler(); handler != nil {
 					handler(event, setFocus)
 					return

@@ -36,6 +36,10 @@ type TableCell struct {
 	// The background color of the cell.
 	BackgroundColor tcell.Color
 
+	// If set to true, the BackgroundColor is not used and the cell will have
+	// the background color of the table.
+	Transparent bool
+
 	// The style attributes of the cell.
 	Attributes tcell.AttrMask
 
@@ -59,7 +63,8 @@ func NewTableCell(text string) *TableCell {
 		Text:            text,
 		Align:           AlignLeft,
 		Color:           Styles.PrimaryTextColor,
-		BackgroundColor: tcell.ColorDefault,
+		BackgroundColor: Styles.PrimitiveBackgroundColor,
+		Transparent:     true,
 	}
 }
 
@@ -111,10 +116,19 @@ func (c *TableCell) SetTextColor(color tcell.Color) *TableCell {
 	return c
 }
 
-// SetBackgroundColor sets the cell's background color. Set to
-// tcell.ColorDefault to use the table's background color.
+// SetBackgroundColor sets the cell's background color. This will also cause the
+// cell's Transparent flag to be set to "false".
 func (c *TableCell) SetBackgroundColor(color tcell.Color) *TableCell {
 	c.BackgroundColor = color
+	c.Transparent = false
+	return c
+}
+
+// SetTransparency sets the background transparency of this cell. A value of
+// "true" will cause the cell to use the table's background color. A value of
+// "false" will cause it to use its own background color.
+func (c *TableCell) SetTransparency(transparent bool) *TableCell {
+	c.Transparent = transparent
 	return c
 }
 
@@ -326,7 +340,7 @@ func (t *Table) SetBordersColor(color tcell.Color) *Table {
 //
 // To reset a previous setting to its default, make the following call:
 //
-//   table.SetSelectedStyle(tcell.ColorDefault, tcell.ColorDefault, 0)
+//   table.SetSelectedStyle(tcell.Style{})
 func (t *Table) SetSelectedStyle(style tcell.Style) *Table {
 	t.selectedStyle = style
 	return t
@@ -450,8 +464,9 @@ func (t *Table) SetDoneFunc(handler func(key tcell.Key)) *Table {
 // the Text and Color fields should be set.
 //
 // Note that setting cells in previously unknown rows and columns will
-// automatically extend the internal table representation, e.g. starting with
-// a row of 100,000 will immediately create 100,000 empty rows.
+// automatically extend the internal table representation with empty TableCell
+// objects, e.g. starting with a row of 100,000 will immediately create 100,000
+// empty rows.
 //
 // To avoid unnecessary garbage collection, fill columns from left to right.
 func (t *Table) SetCell(row, column int, cell *TableCell) *Table {
@@ -623,7 +638,7 @@ func (t *Table) ScrollToEnd() *Table {
 
 // Draw draws this primitive onto the screen.
 func (t *Table) Draw(screen tcell.Screen) {
-	t.Box.Draw(screen)
+	t.Box.DrawForSubclass(screen, t)
 
 	// What's our available screen space?
 	_, totalHeight := screen.Size()
@@ -652,7 +667,7 @@ func (t *Table) Draw(screen tcell.Screen) {
 		}
 		for t.selectedRow < len(t.cells) {
 			cell := getCell(t.selectedRow, t.selectedColumn)
-			if cell == nil || !cell.NotSelectable {
+			if cell != nil && !cell.NotSelectable {
 				break
 			}
 			t.selectedColumn++
@@ -885,10 +900,10 @@ ColumnLoop:
 				finalWidth = width - columnX - 1
 			}
 			cell.x, cell.y, cell.width = x+columnX+1, y+rowY, finalWidth
-			_, printed := printWithStyle(screen, cell.Text, x+columnX+1, y+rowY, finalWidth, cell.Align, tcell.StyleDefault.Foreground(cell.Color).Attributes(cell.Attributes))
+			_, printed, _, _ := printWithStyle(screen, cell.Text, x+columnX+1, y+rowY, 0, finalWidth, cell.Align, tcell.StyleDefault.Foreground(cell.Color).Attributes(cell.Attributes), true)
 			if TaggedStringWidth(cell.Text)-printed > 0 && printed > 0 {
 				_, _, style, _ := screen.GetContent(x+columnX+finalWidth, y+rowY)
-				printWithStyle(screen, string(SemigraphicsHorizontalEllipsis), x+columnX+finalWidth, y+rowY, 1, AlignLeft, style)
+				printWithStyle(screen, string(SemigraphicsHorizontalEllipsis), x+columnX+finalWidth, 0, y+rowY, 1, AlignLeft, style, false)
 			}
 		}
 
@@ -926,29 +941,23 @@ ColumnLoop:
 	}
 
 	// Helper function which colors the background of a box.
-	// backgroundColor == tcell.ColorDefault => Don't color the background.
-	// textColor == tcell.ColorDefault => Don't change the text color.
+	// backgroundTransparent == true => Don't modify background color (when invert == false).
+	// textTransparent == true => Don't modify text color (when invert == false).
 	// attr == 0 => Don't change attributes.
 	// invert == true => Ignore attr, set text to backgroundColor or t.backgroundColor;
 	//                   set background to textColor.
-	colorBackground := func(fromX, fromY, w, h int, backgroundColor, textColor tcell.Color, attr tcell.AttrMask, invert bool) {
+	colorBackground := func(fromX, fromY, w, h int, backgroundColor, textColor tcell.Color, backgroundTransparent, textTransparent bool, attr tcell.AttrMask, invert bool) {
 		for by := 0; by < h && fromY+by < y+height; by++ {
 			for bx := 0; bx < w && fromX+bx < x+width; bx++ {
 				m, c, style, _ := screen.GetContent(fromX+bx, fromY+by)
 				fg, bg, a := style.Decompose()
 				if invert {
-					if fg == textColor || fg == t.bordersColor {
-						fg = backgroundColor
-					}
-					if fg == tcell.ColorDefault {
-						fg = t.backgroundColor
-					}
-					style = style.Background(textColor).Foreground(fg)
+					style = style.Background(textColor).Foreground(backgroundColor)
 				} else {
-					if backgroundColor != tcell.ColorDefault {
+					if !backgroundTransparent {
 						bg = backgroundColor
 					}
-					if textColor != tcell.ColorDefault {
+					if !textTransparent {
 						fg = textColor
 					}
 					if attr != 0 {
@@ -965,7 +974,7 @@ ColumnLoop:
 	// the drawing of a cell by background color, selected cells last.
 	type cellInfo struct {
 		x, y, w, h int
-		text       tcell.Color
+		cell       *TableCell
 		selected   bool
 	}
 	cellsByBackgroundColor := make(map[tcell.Color][]*cellInfo)
@@ -993,7 +1002,7 @@ ColumnLoop:
 				y:        by,
 				w:        bw,
 				h:        bh,
-				text:     cell.Color,
+				cell:     cell,
 				selected: cellSelected,
 			})
 			if !ok {
@@ -1015,15 +1024,15 @@ ColumnLoop:
 	selFg, selBg, selAttr := t.selectedStyle.Decompose()
 	for _, bgColor := range backgroundColors {
 		entries := cellsByBackgroundColor[bgColor]
-		for _, cell := range entries {
-			if cell.selected {
+		for _, info := range entries {
+			if info.selected {
 				if t.selectedStyle != (tcell.Style{}) {
-					defer colorBackground(cell.x, cell.y, cell.w, cell.h, selBg, selFg, selAttr, false)
+					defer colorBackground(info.x, info.y, info.w, info.h, selBg, selFg, false, false, selAttr, false)
 				} else {
-					defer colorBackground(cell.x, cell.y, cell.w, cell.h, bgColor, cell.text, 0, true)
+					defer colorBackground(info.x, info.y, info.w, info.h, bgColor, info.cell.Color, false, false, 0, true)
 				}
 			} else {
-				colorBackground(cell.x, cell.y, cell.w, cell.h, bgColor, tcell.ColorDefault, 0, false)
+				colorBackground(info.x, info.y, info.w, info.h, bgColor, info.cell.Color, info.cell.Transparent, true, 0, false)
 			}
 		}
 	}
@@ -1060,7 +1069,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 			previous = func() {
 				for t.selectedRow >= 0 {
 					cell := getCell(t.selectedRow, t.selectedColumn)
-					if cell == nil || !cell.NotSelectable {
+					if cell != nil && !cell.NotSelectable {
 						return
 					}
 					t.selectedColumn--
@@ -1081,7 +1090,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 				}
 				for t.selectedRow < len(t.cells) {
 					cell := getCell(t.selectedRow, t.selectedColumn)
-					if cell == nil || !cell.NotSelectable {
+					if cell != nil && !cell.NotSelectable {
 						return
 					}
 					t.selectedColumn++

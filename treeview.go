@@ -13,6 +13,8 @@ const (
 	treeDown
 	treePageUp
 	treePageDown
+	treeParent
+	treeChild
 )
 
 // TreeNode represents one node in a tree view.
@@ -41,9 +43,13 @@ type TreeNode struct {
 	// An optional function which is called when the user selects this node.
 	selected func()
 
+	// The hierarchy level (0 for the root, 1 for its children, and so on). This
+	// is only up to date immediately after a call to process() (e.g. via
+	// Draw()).
+	level int
+
 	// Temporary member variables.
 	parent    *TreeNode // The parent node (nil for the root).
-	level     int       // The hierarchy level (0 for the root, 1 for its children, and so on).
 	graphicsX int       // The x-coordinate of the left-most graphics rune.
 	textX     int       // The x-coordinate of the first rune of the text.
 }
@@ -127,6 +133,18 @@ func (n *TreeNode) AddChild(node *TreeNode) *TreeNode {
 	return n
 }
 
+// RemoveChild removes a child node from this node. If the child node cannot be
+// found, nothing happens.
+func (n *TreeNode) RemoveChild(node *TreeNode) *TreeNode {
+	for index, child := range n.children {
+		if child == node {
+			n.children = append(n.children[:index], n.children[index+1:]...)
+			break
+		}
+	}
+	return n
+}
+
 // SetSelectable sets a flag indicating whether this node can be selected by
 // the user.
 func (n *TreeNode) SetSelectable(selectable bool) *TreeNode {
@@ -207,6 +225,14 @@ func (n *TreeNode) SetIndent(indent int) *TreeNode {
 	return n
 }
 
+// GetLevel returns the node's level within the hierarchy, where 0 corresponds
+// to the root node, 1 corresponds to its children, and so on. This is only
+// guaranteed to be up to date immediately after the tree that contains this
+// node is drawn.
+func (n *TreeNode) GetLevel() int {
+	return n.level
+}
+
 // TreeView displays tree structures. A tree consists of nodes (TreeNode
 // objects) where each node has zero or more child nodes and exactly one parent
 // node (except for the root node which has no parent node).
@@ -223,6 +249,8 @@ func (n *TreeNode) SetIndent(indent int) *TreeNode {
 //   - k, up arrow, left arrow: Move (the selection) up by one node.
 //   - g, home: Move (the selection) to the top.
 //   - G, end: Move (the selection) to the bottom.
+//   - J: Move (the selection) up one level.
+//   - K: Move (the selection) down one level (if it is shown).
 //   - Ctrl-F, page down: Move (the selection) down by one page.
 //   - Ctrl-B, page up: Move (the selection) up by one page.
 //
@@ -407,7 +435,7 @@ func (t *TreeView) process() {
 	_, _, _, height := t.GetInnerRect()
 
 	// Determine visible nodes and their placement.
-	var graphicsOffset, maxTextX int
+	var graphicsOffset, maxTextX, parentSelectedIndex int
 	t.nodes = nil
 	if t.root == nil {
 		return
@@ -455,6 +483,11 @@ func (t *TreeView) process() {
 			}
 
 			t.nodes = append(t.nodes, node)
+		}
+
+		// Keep track of the parent of the selected node.
+		if selectedIndex < 0 && node.selectable && len(node.children) > 0 && node.expanded {
+			parentSelectedIndex = len(t.nodes) - 1
 		}
 
 		// Recurse if desired.
@@ -535,6 +568,16 @@ func (t *TreeView) process() {
 				}
 			}
 			newSelectedIndex = selectedIndex
+		case treeParent:
+			newSelectedIndex = parentSelectedIndex
+		case treeChild:
+			for newSelectedIndex < len(t.nodes)-1 {
+				newSelectedIndex++
+				if t.nodes[newSelectedIndex].selectable && t.nodes[newSelectedIndex].parent == t.nodes[selectedIndex] {
+					break MovementSwitch
+				}
+			}
+			newSelectedIndex = selectedIndex
 		}
 		t.currentNode = t.nodes[newSelectedIndex]
 		if newSelectedIndex != selectedIndex {
@@ -571,7 +614,7 @@ func (t *TreeView) process() {
 
 // Draw draws this primitive onto the screen.
 func (t *TreeView) Draw(screen tcell.Screen) {
-	t.Box.Draw(screen)
+	t.Box.DrawForSubclass(screen, t)
 	if t.root == nil {
 		return
 	}
@@ -629,7 +672,7 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 				// Draw a branch if this ancestor is not a last child.
 				if ancestor.parent.children[len(ancestor.parent.children)-1] != ancestor {
 					if posY-1 >= y && ancestor.textX > ancestor.graphicsX {
-						PrintJoinedSemigraphics(screen, x+ancestor.graphicsX, posY-1, Borders.Vertical, t.graphicsColor)
+						PrintJoinedSemigraphics(screen, x+ancestor.graphicsX, posY-1, Borders.Vertical, lineStyle)
 					}
 					if posY < y+height {
 						screen.SetContent(x+ancestor.graphicsX, posY, Borders.Vertical, nil, lineStyle)
@@ -641,7 +684,7 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 			if node.textX > node.graphicsX && node.graphicsX < width {
 				// Connect to the node above.
 				if posY-1 >= y && t.nodes[index-1].graphicsX <= node.graphicsX && t.nodes[index-1].textX > node.graphicsX {
-					PrintJoinedSemigraphics(screen, x+node.graphicsX, posY-1, Borders.TopLeft, t.graphicsColor)
+					PrintJoinedSemigraphics(screen, x+node.graphicsX, posY-1, Borders.TopLeft, lineStyle)
 				}
 
 				// Join this node.
@@ -664,11 +707,11 @@ func (t *TreeView) Draw(screen tcell.Screen) {
 
 			// Text.
 			if node.textX+prefixWidth < width {
-				style := tcell.StyleDefault.Foreground(node.color)
+				style := tcell.StyleDefault.Background(t.backgroundColor).Foreground(node.color)
 				if node == t.currentNode {
 					style = tcell.StyleDefault.Background(node.color).Foreground(t.backgroundColor)
 				}
-				printWithStyle(screen, node.text, x+node.textX+prefixWidth, posY, width-node.textX-prefixWidth, AlignLeft, style)
+				printWithStyle(screen, node.text, x+node.textX+prefixWidth, posY, 0, width-node.textX-prefixWidth, AlignLeft, style, false)
 			}
 		}
 
@@ -719,16 +762,18 @@ func (t *TreeView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 				t.movement = treeEnd
 			case 'j':
 				t.movement = treeDown
+			case 'J':
+				t.movement = treeChild
 			case 'k':
 				t.movement = treeUp
+			case 'K':
+				t.movement = treeParent
 			case ' ':
 				selectNode()
 			}
 		case tcell.KeyEnter:
 			selectNode()
 		}
-
-		t.process()
 	})
 }
 
@@ -744,7 +789,7 @@ func (t *TreeView) MouseHandler() func(action MouseAction, event *tcell.EventMou
 		case MouseLeftClick:
 			setFocus(t)
 			_, rectY, _, _ := t.GetInnerRect()
-			y -= rectY
+			y += t.offsetY - rectY
 			if y >= 0 && y < len(t.nodes) {
 				node := t.nodes[y]
 				if node.selectable {

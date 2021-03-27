@@ -1,6 +1,8 @@
 package tview
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -28,6 +30,9 @@ type Box struct {
 
 	// The box's background color.
 	backgroundColor tcell.Color
+
+	// If set to true, the background of this box is not cleared while drawing.
+	dontClear bool
 
 	// Whether or not a border is drawn, reducing the box's space for content by
 	// two in width and height.
@@ -77,11 +82,12 @@ func NewBox() *Box {
 		innerX:           -1, // Mark as uninitialized.
 		backgroundColor:  Styles.PrimitiveBackgroundColor,
 		borderFocusColor: Styles.FocusColor,
-		borderStyle:      tcell.StyleDefault.Foreground(Styles.BorderColor),
+		borderStyle:      tcell.StyleDefault.Foreground(Styles.BorderColor).Background(Styles.PrimitiveBackgroundColor),
 		titleColor:       Styles.TitleColor,
 		titleAlign:       AlignCenter,
 	}
 	b.focus = b
+
 	return b
 }
 
@@ -259,6 +265,7 @@ func (b *Box) GetMouseCapture() func(action MouseAction, event *tcell.EventMouse
 // SetBackgroundColor sets the box's background color.
 func (b *Box) SetBackgroundColor(color tcell.Color) *Box {
 	b.backgroundColor = color
+	b.borderStyle = b.borderStyle.Background(color)
 	return b
 }
 
@@ -333,6 +340,16 @@ func (b *Box) SetTitleAlign(align int) *Box {
 
 // Draw draws this primitive onto the screen.
 func (b *Box) Draw(screen tcell.Screen) {
+	b.DrawForSubclass(screen, b)
+}
+
+// DrawForSubclass draws this box under the assumption that primitive p is a
+// subclass of this box. This is needed e.g. to draw proper box frames which
+// depend on the subclass's focus.
+//
+// Only call this function from your own custom primitives. It is not needed in
+// applications that have no custom primitives.
+func (b *Box) DrawForSubclass(screen tcell.Screen, p Primitive) {
 	// Don't draw anything if there is no space.
 	if b.width <= 0 || b.height <= 0 {
 		return
@@ -351,6 +368,7 @@ func (b *Box) Draw(screen tcell.Screen) {
 	// Draw border.
 	if b.border && b.width >= 2 && b.height >= 2 {
 		var vertical, horizontal, topLeft, topRight, bottomLeft, bottomRight rune
+		// BOZO!!
 		border := background.Foreground(b.borderColor)
 		if b.focus.HasFocus() {
 			border = background.Foreground(b.borderFocusColor)
@@ -413,4 +431,15 @@ func (b *Box) HasFocus() bool {
 // GetFocusable returns the item's Focusable.
 func (b *Box) GetFocusable() Focusable {
 	return b.focus
+}
+
+func ToRGB(c tcell.Color) string {
+	r, g, b := c.RGB()
+
+	return fmt.Sprintf("%d:%d:%d", r, g, b)
+}
+
+func ShowBg(s tcell.Style) string {
+	fg, _, _ := s.Decompose()
+	return ToRGB(fg)
 }

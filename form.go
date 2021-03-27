@@ -363,7 +363,7 @@ func (f *Form) SetCancelFunc(callback func()) *Form {
 
 // Draw draws this primitive onto the screen.
 func (f *Form) Draw(screen tcell.Screen) {
-	f.Box.Draw(screen)
+	f.Box.DrawForSubclass(screen, f)
 
 	// Determine the actual item that has focus.
 	if index := f.focusIndex(); index >= 0 {
@@ -430,7 +430,7 @@ func (f *Form) Draw(screen tcell.Screen) {
 		positions[index].y = y
 		positions[index].width = itemWidth
 		positions[index].height = 1
-		if item.GetFocusable().HasFocus() {
+		if item.HasFocus() {
 			focusedPosition = positions[index]
 		}
 
@@ -484,6 +484,10 @@ func (f *Form) Draw(screen tcell.Screen) {
 		if buttonWidth > space {
 			buttonWidth = space
 		}
+		button.SetLabelColor(f.buttonTextColor).
+			SetLabelColorActivated(f.buttonBackgroundColor).
+			SetBackgroundColorActivated(f.buttonTextColor).
+			SetBackgroundColor(f.buttonBackgroundColor)
 
 		buttonIndex := index + len(f.items)
 		positions[buttonIndex].x = x
@@ -520,7 +524,7 @@ func (f *Form) Draw(screen tcell.Screen) {
 		}
 
 		// Draw items with focus last (in case of overlaps).
-		if item.GetFocusable().HasFocus() {
+		if item.HasFocus() {
 			defer item.Draw(screen)
 		} else {
 			item.Draw(screen)
@@ -604,12 +608,12 @@ func (f *Form) HasFocus() bool {
 // has focus.
 func (f *Form) focusIndex() int {
 	for index, item := range f.items {
-		if item.GetFocusable().HasFocus() {
+		if item.HasFocus() {
 			return index
 		}
 	}
 	for index, button := range f.buttons {
-		if button.focus.HasFocus() {
+		if button.HasFocus() {
 			return len(f.items) + index
 		}
 	}
@@ -662,7 +666,7 @@ func (f *Form) MouseHandler() func(action MouseAction, event *tcell.EventMouse, 
 func (f *Form) InputHandler() func(event *tcell.EventKey, setFocus func(p Primitive)) {
 	return f.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p Primitive)) {
 		for _, item := range f.items {
-			if item != nil && item.GetFocusable().HasFocus() {
+			if item != nil && item.HasFocus() {
 				if handler := item.InputHandler(); handler != nil {
 					handler(event, setFocus)
 					return
@@ -671,7 +675,7 @@ func (f *Form) InputHandler() func(event *tcell.EventKey, setFocus func(p Primit
 		}
 
 		for _, button := range f.buttons {
-			if button.GetFocusable().HasFocus() {
+			if button.HasFocus() {
 				if handler := button.InputHandler(); handler != nil {
 					handler(event, setFocus)
 					return
