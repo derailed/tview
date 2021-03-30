@@ -513,7 +513,9 @@ func (a *Application) Suspend(f func()) bool {
 	}
 
 	// Enter suspended mode.
-	screen.Fini()
+	if err := screen.Suspend(); err != nil {
+		return false
+	}
 
 	// Wait for "f" to return.
 	f()
@@ -526,13 +528,16 @@ func (a *Application) Suspend(f func()) bool {
 		return true
 	}
 
-	// Make a new screen.
-	var err error
-	screen, err = tcell.NewScreen()
-	if err != nil {
-		panic(err)
+	if err := screen.Resume(); err != nil {
+		return false
 	}
-	a.screenReplacement <- screen
+	// // Make a new screen.
+	// var err error
+	// screen, err = tcell.NewScreen()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// a.screenReplacement <- screen
 	// One key event will get lost, see https://github.com/gdamore/tcell/issues/194
 
 	// Continue application loop.
