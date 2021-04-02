@@ -1247,11 +1247,16 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 			t.columnOffset--
 		case tcell.KeyRight:
 			t.columnOffset++
-		case tcell.KeyPgDn, tcell.KeyCtrlF:
+		case tcell.KeyPgDn:
 			t.lineOffset += t.pageSize
-		case tcell.KeyPgUp, tcell.KeyCtrlB:
+		case tcell.KeyCtrlF:
+			t.lineOffset += t.pageSize - 1
+		case tcell.KeyPgUp:
 			t.trackEnd = false
 			t.lineOffset -= t.pageSize
+		case tcell.KeyCtrlB:
+			t.trackEnd = false
+			t.lineOffset -= t.pageSize - 1
 		}
 	})
 }
