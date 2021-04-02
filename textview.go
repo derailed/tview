@@ -60,6 +60,8 @@ type textViewRegion struct {
 //   - k, up arrow: Move up.
 //   - g, home: Move to the top.
 //   - G, end: Move to the bottom.
+//   - Ctrl-E: Move down by one line.
+//   - Ctrl-Y: Move up by one line.
 //   - Ctrl-F, page down: Move down by one page.
 //   - Ctrl-B, page up: Move up by one page.
 //
@@ -1238,10 +1240,10 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyEnd:
 			t.trackEnd = true
 			t.columnOffset = 0
-		case tcell.KeyUp:
+		case tcell.KeyUp, tcell.KeyCtrlY:
 			t.trackEnd = false
 			t.lineOffset--
-		case tcell.KeyDown:
+		case tcell.KeyDown, tcell.KeyCtrlE:
 			t.lineOffset++
 		case tcell.KeyLeft:
 			t.columnOffset--
