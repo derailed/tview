@@ -19,19 +19,15 @@ type Box struct {
 	// The position of the rect.
 	x, y, width, height int
 
-	// The color of the border.
+	// The bordercolor when the box has focus
 	// BOZO!!
-	borderColor tcell.Color
+	borderFocusColor tcell.Color
 
 	// The inner rect reserved for the box's content.
 	innerX, innerY, innerWidth, innerHeight int
 
 	// Border padding.
 	paddingTop, paddingBottom, paddingLeft, paddingRight int
-
-	// The bordercolor when the box has focus
-	// BOZO!!
-	borderFocusColor tcell.Color
 
 	// The box's background color.
 	backgroundColor tcell.Color
@@ -373,9 +369,9 @@ func (b *Box) DrawForSubclass(screen tcell.Screen, p Primitive) {
 	if b.border && b.width >= 2 && b.height >= 2 {
 		var vertical, horizontal, topLeft, topRight, bottomLeft, bottomRight rune
 		// BOZO!!
-		border := background.Foreground(b.borderColor)
-		if b.focus.HasFocus() {
-			border = background.Foreground(b.borderFocusColor)
+		border := b.borderStyle
+		if b.focus.HasFocus() && b.borderFocusColor != tcell.ColorDefault {
+			border = border.Foreground(b.borderFocusColor)
 		}
 		horizontal = Borders.Horizontal
 		vertical = Borders.Vertical
