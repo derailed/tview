@@ -11,6 +11,12 @@ type ModalForm struct {
 
 // NewModalForm implements a modal that can take in a custom form.
 func NewModalForm(title string, form *Form) *ModalForm {
+	return NewModalFormWithColor(title, form, tcell.ColorAqua)
+}
+
+// NewModalFormWithColor implements a modal that can take in a custom form that
+// allows setting the title color.
+func NewModalFormWithColor(title string, form *Form, fgColor tcell.Color) *ModalForm {
 	m := ModalForm{NewModal()}
 	m.form = form
 	m.form.SetBackgroundColor(Styles.ContrastBackgroundColor).SetBorderPadding(0, 0, 0, 0)
@@ -24,7 +30,7 @@ func NewModalForm(title string, form *Form) *ModalForm {
 		SetBackgroundColor(Styles.ContrastBackgroundColor).
 		SetBorderPadding(1, 1, 1, 1)
 	m.frame.SetTitle(title)
-	m.frame.SetTitleColor(tcell.ColorAqua)
+	m.frame.SetTitleColor(fgColor)
 	m.focus = m
 
 	return &m
