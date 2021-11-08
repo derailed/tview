@@ -37,7 +37,7 @@ type Checkbox struct {
 
 	// An optional function which is called when the user changes the checked
 	// state of this checkbox.
-	changed func(checked bool)
+	changed func(label string, checked bool)
 
 	// An optional function which is called when the user indicated that they
 	// are done entering text. The key which was pressed is provided (tab,
@@ -132,7 +132,7 @@ func (c *Checkbox) GetFieldWidth() int {
 // SetChangedFunc sets a handler which is called when the checked state of this
 // checkbox was changed by the user. The handler function receives the new
 // state.
-func (c *Checkbox) SetChangedFunc(handler func(checked bool)) *Checkbox {
+func (c *Checkbox) SetChangedFunc(handler func(label string, checked bool)) *Checkbox {
 	c.changed = handler
 	return c
 }
@@ -203,7 +203,7 @@ func (c *Checkbox) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 			}
 			c.checked = !c.checked
 			if c.changed != nil {
-				c.changed(c.checked)
+				c.changed(c.label, c.checked)
 			}
 		case tcell.KeyTab, tcell.KeyBacktab, tcell.KeyEscape, tcell.KeyUp, tcell.KeyDown, tcell.KeyLeft, tcell.KeyRight: // We're done.
 			if c.done != nil {
@@ -230,7 +230,7 @@ func (c *Checkbox) MouseHandler() func(action MouseAction, event *tcell.EventMou
 			setFocus(c)
 			c.checked = !c.checked
 			if c.changed != nil {
-				c.changed(c.checked)
+				c.changed(c.label, c.checked)
 			}
 			consumed = true
 		}

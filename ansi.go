@@ -2,8 +2,8 @@ package tview
 
 import (
 	"bytes"
-	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -16,15 +16,34 @@ const (
 	ansiControlSequence
 )
 
+var colors = []string{
+	"black",
+	"maroon",
+	"green",
+	"olive",
+	"navy",
+	"purple",
+	"teal",
+	"silver",
+	"gray",
+	"red",
+	"lime",
+	"yellow",
+	"blue",
+	"fuchsia",
+	"aqua",
+	"white",
+}
+
 // ansi is a io.Writer which translates ANSI escape codes into tview color
 // tags.
 type ansi struct {
 	io.Writer
 
 	// Reusable buffers.
-	buffer                        *bytes.Buffer // The entire output text of one Write().
-	csiParameter, csiIntermediate *bytes.Buffer // Partial CSI strings.
-	attributes                    string        // The buffer's current text attributes (a tview attribute string).
+	buffer       *bytes.Buffer // The entire output text of one Write().
+	csiParameter []rune        // Partial CSI strings.
+	attributes   string        // The buffer's current text attributes (a tview attribute string).
 
 	// The current state of the parser. One of the ansi constants.
 	state int
@@ -38,35 +57,41 @@ type ansi struct {
 // writer.
 func ANSIWriter(writer io.Writer, fg, bg string) io.Writer {
 	return &ansi{
-		Writer:          writer,
-		buffer:          new(bytes.Buffer),
-		csiParameter:    new(bytes.Buffer),
-		csiIntermediate: new(bytes.Buffer),
-		state:           ansiText,
-		fg:              fg,
-		bg:              bg,
+		Writer: writer,
+		state:  ansiText,
+		fg:     fg,
+		bg:     bg,
 	}
 }
 
 // Write parses the given text as a string of runes, translates ANSI escape
 // codes to color tags and writes them to the output writer.
-func (a *ansi) Write(text []byte) (int, error) {
-	defer func() {
-		a.buffer.Reset()
-	}()
+func (a *ansi) Write(bb []byte) (int, error) {
+	if a.buffer == nil {
+		a.buffer = bytes.NewBuffer(make([]byte, 0, len(bb)))
+	}
+	defer a.buffer.Reset()
 
-	for _, r := range string(text) {
+	num := func(rr []rune) int {
+		var n int
+		p := len(rr) - 1
+		for _, r := range rr {
+			n += int(r-'0') * int(math.Pow(10, float64(p)))
+			p -= 1
+		}
+		return n
+	}
+
+	for _, r := range string(bb) {
 		switch a.state {
-
 		// We just entered an escape sequence.
 		case ansiEscape:
 			switch r {
 			case '[': // Control Sequence Introducer.
-				a.csiParameter.Reset()
-				a.csiIntermediate.Reset()
+				a.csiParameter = a.csiParameter[:0]
 				a.state = ansiControlSequence
 			case 'c': // Reset.
-				fmt.Fprint(a.buffer, "[-:-:-]")
+				a.buffer.WriteString("[-::-]")
 				a.state = ansiText
 			case 'P', ']', 'X', '^', '_': // Substrings and commands.
 				a.state = ansiSubstring
@@ -78,145 +103,171 @@ func (a *ansi) Write(text []byte) (int, error) {
 		case ansiControlSequence:
 			switch {
 			case r >= 0x30 && r <= 0x3f: // Parameter bytes.
-				if _, err := a.csiParameter.WriteRune(r); err != nil {
-					return 0, err
-				}
-			case r >= 0x20 && r <= 0x2f: // Intermediate bytes.
-				if _, err := a.csiIntermediate.WriteRune(r); err != nil {
-					return 0, err
-				}
+				a.csiParameter = append(a.csiParameter, r)
 			case r >= 0x40 && r <= 0x7e: // Final byte.
 				switch r {
 				case 'E': // Next line.
-					count, _ := strconv.Atoi(a.csiParameter.String())
+					count, _ := strconv.Atoi(string(a.csiParameter))
 					if count == 0 {
 						count = 1
 					}
-					fmt.Fprint(a.buffer, strings.Repeat("\n", count))
+					for i := 0; i < int(count); i++ {
+						a.buffer.WriteByte('\n')
+					}
 				case 'm': // Select Graphic Rendition.
 					var background, foreground string
-					params := a.csiParameter.String()
-					fields := strings.Split(params, ";")
-					if len(params) == 0 || len(fields) == 1 && fields[0] == "0" {
+					fields, bb := make([]int, 0, 10), make([]rune, 0, 10)
+					for _, r := range a.csiParameter {
+						if r == ';' {
+							fields = append(fields, num(bb))
+							bb = bb[:0]
+						} else {
+							bb = append(bb, r)
+						}
+					}
+					if len(bb) > 0 {
+						fields = append(fields, num(bb))
+					}
+					if len(a.csiParameter) == 0 || len(fields) == 1 && fields[0] == 0 {
 						// Reset.
 						a.attributes = ""
 						if _, err := a.buffer.WriteString("[" + a.fg + ":" + a.bg + ":-]"); err != nil {
 							return 0, err
 						}
-						break
 					}
-					lookupColor := func(colorNumber int) string {
-						if colorNumber < 0 || colorNumber > 15 {
-							return "black"
-						}
-						return []string{
-							"black",
-							"maroon",
-							"green",
-							"olive",
-							"navy",
-							"purple",
-							"teal",
-							"silver",
-							"gray",
-							"red",
-							"lime",
-							"yellow",
-							"blue",
-							"fuchsia",
-							"aqua",
-							"white",
-						}[colorNumber]
-					}
-				FieldLoop:
 					for index, field := range fields {
 						switch field {
-						case "1", "01":
-							if strings.IndexRune(a.attributes, 'b') < 0 {
+						case 1:
+							if !strings.ContainsRune(a.attributes, 'b') {
 								a.attributes += "b"
 							}
-						case "2", "02":
-							if strings.IndexRune(a.attributes, 'd') < 0 {
+						case 2:
+							if !strings.ContainsRune(a.attributes, 'd') {
 								a.attributes += "d"
 							}
-						case "4", "04":
-							if strings.IndexRune(a.attributes, 'u') < 0 {
+						case 4:
+							if !strings.ContainsRune(a.attributes, 'u') {
 								a.attributes += "u"
 							}
-						case "5", "05":
-							if strings.IndexRune(a.attributes, 'l') < 0 {
+						case 5:
+							if !strings.ContainsRune(a.attributes, 'l') {
 								a.attributes += "l"
 							}
-						case "22":
+						case 22:
 							if i := strings.IndexRune(a.attributes, 'b'); i >= 0 {
-								a.attributes = a.attributes[:i] + a.attributes[i+1:]
+								a.attributes = strings.Replace(a.attributes, "b", "", 1)
 							}
 							if i := strings.IndexRune(a.attributes, 'd'); i >= 0 {
-								a.attributes = a.attributes[:i] + a.attributes[i+1:]
+								a.attributes = strings.Replace(a.attributes, "d", "", 1)
 							}
-						case "24":
+						case 24:
 							if i := strings.IndexRune(a.attributes, 'u'); i >= 0 {
-								a.attributes = a.attributes[:i] + a.attributes[i+1:]
+								a.attributes = strings.Replace(a.attributes, "u", "", 1)
 							}
-						case "25":
+						case 25:
 							if i := strings.IndexRune(a.attributes, 'l'); i >= 0 {
-								a.attributes = a.attributes[:i] + a.attributes[i+1:]
+								a.attributes = strings.Replace(a.attributes, "l", "", 1)
 							}
-						case "30", "31", "32", "33", "34", "35", "36", "37":
-							colorNumber, _ := strconv.Atoi(field)
-							foreground = lookupColor(colorNumber - 30)
-						case "39":
-							foreground = "-"
-						case "40", "41", "42", "43", "44", "45", "46", "47":
-							colorNumber, _ := strconv.Atoi(field)
-							background = lookupColor(colorNumber - 40)
-						case "49":
-							background = "-"
-						case "90", "91", "92", "93", "94", "95", "96", "97":
-							colorNumber, _ := strconv.Atoi(field)
-							foreground = lookupColor(colorNumber - 82)
-						case "100", "101", "102", "103", "104", "105", "106", "107":
-							colorNumber, _ := strconv.Atoi(field)
-							background = lookupColor(colorNumber - 92)
-						case "38", "48":
+						case 30, 31, 32, 33, 34, 35, 36, 37:
+							n := field - 30
+							if n < 0 || n > len(colors) {
+								n = 0
+							}
+							foreground = colors[n]
+						case 39:
+							foreground = foreground + "-"
+						case 40, 41, 42, 43, 44, 45, 46, 47:
+							n := field - 40
+							if n < 0 || n > len(colors) {
+								n = 0
+							}
+							background = colors[n]
+						case 49:
+							background = background + "-"
+						case 90, 91, 92, 93, 94, 95, 96, 97:
+							n := field - 82
+							if n < 0 || n > len(colors) {
+								n = 0
+							}
+							foreground = colors[n]
+						case 100, 101, 102, 103, 104, 105, 106, 107:
+							n := field - 92
+							if n < 0 || n > len(colors) {
+								n = 0
+							}
+							background = colors[n]
+						case 38, 48:
+							if len(fields) < index+1 {
+								continue
+							}
 							var color string
-							if len(fields) > index+1 {
-								if fields[index+1] == "5" && len(fields) > index+2 { // 8-bit colors.
-									colorNumber, _ := strconv.Atoi(fields[index+2])
-									if colorNumber <= 15 {
-										color = lookupColor(colorNumber)
-									} else if colorNumber <= 231 {
-										red := (colorNumber - 16) / 36
-										green := ((colorNumber - 16) / 6) % 6
-										blue := (colorNumber - 16) % 6
-										color = fmt.Sprintf("#%02x%02x%02x", 255*red/5, 255*green/5, 255*blue/5)
-									} else if colorNumber <= 255 {
-										grey := 255 * (colorNumber - 232) / 23
-										color = fmt.Sprintf("#%02x%02x%02x", grey, grey, grey)
+							if fields[index+1] == 5 && len(fields) > index+2 { // 8-bit colors.
+								colorNumber := fields[index+2]
+								if colorNumber <= 15 {
+									color = colors[colorNumber]
+								} else if colorNumber <= 231 {
+									red := (colorNumber - 16) / 36
+									green := ((colorNumber - 16) / 6) % 6
+									blue := (colorNumber - 16) % 6
+									r := strconv.FormatInt(int64(255*red/5), 16)
+									g := strconv.FormatInt(int64(255*green/5), 16)
+									b := strconv.FormatInt(int64(255*blue/5), 16)
+									if len(r) == 1 {
+										r = "0" + r
 									}
-								} else if fields[index+1] == "2" && len(fields) > index+4 { // 24-bit colors.
-									red, _ := strconv.Atoi(fields[index+2])
-									green, _ := strconv.Atoi(fields[index+3])
-									blue, _ := strconv.Atoi(fields[index+4])
-									color = fmt.Sprintf("#%02x%02x%02x", red, green, blue)
+									if len(g) == 1 {
+										g = "0" + g
+									}
+									if len(b) == 1 {
+										b = "0" + b
+									}
+									color = "#" + r + g + b
+								} else if colorNumber <= 255 {
+									grey := 255 * (colorNumber - 232) / 23
+									g := strconv.FormatInt(int64(grey), 16)
+									if len(g) == 1 {
+										g = "0" + g
+									}
+									color = "#" + g + g + g
 								}
+							} else if fields[index+1] == 2 && len(fields) > index+4 { // 24-bit colors.
+								red := fields[index+2]
+								green := fields[index+3]
+								blue := fields[index+4]
+								r := strconv.FormatInt(int64(red), 16)
+								g := strconv.FormatInt(int64(green), 16)
+								b := strconv.FormatInt(int64(blue), 16)
+								if len(r) == 1 {
+									r = "0" + r
+								}
+								if len(g) == 1 {
+									g = "0" + g
+								}
+								if len(b) == 1 {
+									b = "0" + b
+								}
+								color = "#" + r + g + b
 							}
+
 							if len(color) > 0 {
-								if field == "38" {
+								if field == 38 {
 									foreground = color
 								} else {
 									background = color
 								}
 							}
-							break FieldLoop
 						}
 					}
-					var colon string
-					if len(a.attributes) > 0 {
-						colon = ":"
-					}
 					if len(foreground) > 0 || len(background) > 0 || len(a.attributes) > 0 {
-						fmt.Fprintf(a.buffer, "[%s:%s%s%s]", foreground, background, colon, a.attributes)
+						a.buffer.WriteByte('[')
+						a.buffer.WriteString(foreground)
+						a.buffer.WriteByte(':')
+						a.buffer.WriteString(background)
+						if len(a.attributes) > 0 {
+							a.buffer.WriteByte(':')
+						}
+						a.buffer.WriteString(a.attributes)
+						a.buffer.WriteByte(']')
 					}
 				}
 				a.state = ansiText
@@ -249,14 +300,14 @@ func (a *ansi) Write(text []byte) (int, error) {
 	if err != nil {
 		return int(n), err
 	}
-	return len(text), nil
+	return len(bb), nil
 }
 
 // TranslateANSI replaces ANSI escape sequences found in the provided string
 // with tview's color tags and returns the resulting string.
-func TranslateANSI(text string) string {
+func TranslateANSI(text []byte) []byte {
 	var buffer bytes.Buffer
 	writer := ANSIWriter(&buffer, "white", "black")
-	writer.Write([]byte(text))
-	return buffer.String()
+	writer.Write(text)
+	return buffer.Bytes()
 }

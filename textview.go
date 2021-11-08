@@ -16,7 +16,6 @@ import (
 var (
 	openColorRegex  = regexp.MustCompile(`\[([a-zA-Z]*|#[0-9a-zA-Z]*)$`)
 	openRegionRegex = regexp.MustCompile(`\["[a-zA-Z0-9_,;: \-\.]*"?$`)
-	newLineRegex    = regexp.MustCompile(`\r?\n`)
 
 	// TabSize is the number of spaces with which a tab character will be replaced.
 	TabSize = 4
@@ -197,10 +196,6 @@ type TextView struct {
 	// highlighted.
 	highlighted func(added, removed, remaining []string)
 
-	// MaxBuffer keeps only that many lines in the buffer for large text display.
-	// The text buffer will be trimmed once the limit is reached.
-	maxBuffer int
-
 	// cursorIndex tracks cursor position.
 	cursorIndex int
 
@@ -224,7 +219,7 @@ func NewTextView() *TextView {
 	}
 }
 
-// ShowCusor toggle cursor visibility.
+// ShowCursor toggle cursor visibility.
 func (t *TextView) ShowCursor(f bool) {
 	t.showCursor = f
 }
@@ -284,7 +279,7 @@ func (t *TextView) SetWordWrap(wrapOnWords bool) *TextView {
 //
 // A value of 0 (the default) will keep all lines in place.
 func (t *TextView) SetMaxLines(maxLines int) *TextView {
-	t.maxLines = maxLines
+	t.maxLines = maxLines + 1
 	return t
 }
 
@@ -317,7 +312,6 @@ func (t *TextView) SetText(text string) *TextView {
 // GetText returns the current text of this text view. If "stripAllTags" is set
 // to true, any region/color tags are stripped from the text.
 func (t *TextView) GetText(stripAllTags bool) string {
-	// Get the buffer.
 	// Get the buffer.
 	buffer := t.buffer
 
@@ -453,8 +447,8 @@ func (t *TextView) GetScrollOffset() (row, column int) {
 
 // Clear removes all text from the buffer.
 func (t *TextView) Clear() *TextView {
-	t.buffer = nil
-	t.recentBytes = nil
+	t.buffer = t.buffer[:0]
+	t.recentBytes = t.recentBytes[:0]
 	t.index = nil
 	return t
 }
@@ -652,10 +646,15 @@ func (t *TextView) HasFocus() bool {
 	return t.hasFocus
 }
 
+const (
+	tabSpacer       = "    "
+	defaultLineSize = 1_000
+)
+
 // Write lets us implement the io.Writer interface. Tab characters will be
 // replaced with TabSize space characters. A "\n" or "\r\n" will be interpreted
 // as a new line.
-func (t *TextView) Write(p []byte) (n int, err error) {
+func (t *TextView) Write(bb []byte) (n int, err error) {
 	// Notify at the end.
 	t.Lock()
 	changed := t.changed
@@ -672,13 +671,18 @@ func (t *TextView) Write(p []byte) (n int, err error) {
 	defer t.Unlock()
 
 	// Copy data over.
-	newBytes := append(t.recentBytes, p...)
+	var newBytes []byte
+	if t.recentBytes == nil {
+		newBytes = bb
+	} else {
+		newBytes = append(t.recentBytes, bb...)
+	}
 	t.recentBytes = nil
 
 	// If we have a trailing invalid UTF-8 byte, we'll wait.
-	if r, _ := utf8.DecodeLastRune(p); r == utf8.RuneError {
+	if r, _ := utf8.DecodeLastRune(bb); r == utf8.RuneError {
 		t.recentBytes = newBytes
-		return len(p), nil
+		return len(bb), nil
 	}
 
 	// If we have a trailing open dynamic color, exclude it.
@@ -699,32 +703,35 @@ func (t *TextView) Write(p []byte) (n int, err error) {
 		}
 	}
 
-	// Transform the new bytes into strings.
-	newBytes = bytes.Replace(newBytes, []byte{'\t'}, bytes.Repeat([]byte{' '}, TabSize), -1)
-	for index, line := range bytes.Split(newBytes, []byte{'\n'}) {
-		if index == 0 {
-			if len(t.buffer) == 0 {
-				t.buffer = [][]byte{line}
-			} else {
-				t.buffer[len(t.buffer)-1] = append(t.buffer[len(t.buffer)-1], line...)
-			}
-		} else {
-			if t.maxBuffer != 0 && len(t.buffer) > t.maxBuffer {
+	var bufferIndex int
+	if len(t.buffer) > 0 {
+		bufferIndex = len(t.buffer) - 1
+	} else {
+		t.buffer = append(t.buffer, make([]byte, 0, defaultLineSize))
+	}
+	for i := 0; i < len(newBytes); i++ {
+		b := newBytes[i]
+		switch b {
+		case '\n':
+			if t.maxLines > 0 && len(t.buffer) > t.maxLines {
+				line := t.buffer[0]
 				t.buffer = t.buffer[1:]
+				t.buffer = append(t.buffer, line[:0])
+			} else {
+				t.buffer = append(t.buffer, make([]byte, 0, defaultLineSize))
 			}
-			t.buffer = append(t.buffer, line)
+			bufferIndex = len(t.buffer) - 1
+		case '\t':
+			t.buffer[bufferIndex] = append(t.buffer[bufferIndex], []byte(tabSpacer)...)
+		default:
+			t.buffer[bufferIndex] = append(t.buffer[bufferIndex], b)
 		}
 	}
 
 	// Reset the index.
 	t.index = nil
 
-	return len(p), nil
-}
-
-// SetMaxBuffer sets the maximum text buffer size.
-func (t *TextView) SetMaxBuffer(size int) {
-	t.maxBuffer = size
+	return len(newBytes), nil
 }
 
 // reindexBuffer re-indexes the buffer such that we can use it to easily draw
@@ -754,26 +761,27 @@ func (t *TextView) reindexBuffer(width int) {
 	)
 
 	// Go through each line in the buffer.
-	for bufferIndex, str := range t.buffer {
-		colorTagIndices, colorTags, regionIndices, regions, escapeIndices, strippedStr, _ := decomposeString(string(str), t.dynamicColors, t.regions)
+	for bufferIndex, bline := range t.buffer {
+		line := string(bline)
+		colorTagIndices, colorTags, regionIndices, regions, escapeIndices, strippedStr, _ := decomposeString(line, t.dynamicColors, t.regions)
 
 		// Split the line if required.
 		var splitLines []string
-		str = []byte(strippedStr)
-		if t.wrap && len(str) > 0 {
-			for len(str) > 0 {
-				extract := runewidth.Truncate(string(str), width, "")
+		// str = []byte(strippedStr)
+		if t.wrap && len(strippedStr) > 0 {
+			for len(strippedStr) > 0 {
+				extract := runewidth.Truncate(strippedStr, width, "")
 				if len(extract) == 0 {
 					// We'll extract at least one grapheme cluster.
-					gr := uniseg.NewGraphemes(string(str))
+					gr := uniseg.NewGraphemes(strippedStr)
 					gr.Next()
 					_, to := gr.Positions()
-					extract = string(str)[:to]
+					extract = strippedStr[:to]
 				}
-				if t.wordWrap && len(extract) < len(str) {
+				if t.wordWrap && len(extract) < len(strippedStr) {
 					// Add any spaces from the next line.
-					if spaces := spacePattern.FindStringIndex(string(str)[len(extract):]); spaces != nil && spaces[0] == 0 {
-						extract = string(str)[:len(extract)+spaces[1]]
+					if spaces := spacePattern.FindStringIndex(strippedStr[len(extract):]); spaces != nil && spaces[0] == 0 {
+						extract = strippedStr[:len(extract)+spaces[1]]
 					}
 
 					// Can we split before the mandatory end?
@@ -784,11 +792,11 @@ func (t *TextView) reindexBuffer(width int) {
 					}
 				}
 				splitLines = append(splitLines, extract)
-				str = str[len(extract):]
+				strippedStr = strippedStr[len(extract):]
 			}
 		} else {
 			// No need to split the line.
-			splitLines = []string{string(str)}
+			splitLines = []string{strippedStr}
 		}
 
 		// Create index from split lines.

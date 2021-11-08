@@ -499,7 +499,7 @@ func (t *Table) SetCellSimple(row, column int, text string) *Table {
 // be inserted. Therefore, repeated calls to this function may return different
 // pointers for uninitialized cells.
 func (t *Table) GetCell(row, column int) *TableCell {
-	if row >= len(t.cells) || column >= len(t.cells[row]) {
+	if row < 0 || column < 0 || row >= len(t.cells) || column >= len(t.cells[row]) {
 		return &TableCell{}
 	}
 	return t.cells[row][column]
