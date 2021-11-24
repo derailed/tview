@@ -263,9 +263,7 @@ func (a *ansi) Write(bb []byte) (int, error) {
 						a.buffer.WriteString(foreground)
 						a.buffer.WriteByte(':')
 						a.buffer.WriteString(background)
-						if len(a.attributes) > 0 {
-							a.buffer.WriteByte(':')
-						}
+						a.buffer.WriteByte(':')
 						a.buffer.WriteString(a.attributes)
 						a.buffer.WriteByte(']')
 					}
