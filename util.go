@@ -20,7 +20,7 @@ const (
 
 // Common regular expressions.
 var (
-	colorPattern     = regexp.MustCompile(`\[([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?(:([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?(:([lbdru]+|\-)?)?)?\]`)
+	colorPattern     = regexp.MustCompile(`\[([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?:([a-zA-Z]+|#[0-9a-zA-Z]{6}|\-)?:([lbdru]+|\-)?\]`)
 	regionPattern    = regexp.MustCompile(`\["([a-zA-Z0-9_,;: \-\.]*)"\]`)
 	escapePattern    = regexp.MustCompile(`\[([a-zA-Z0-9_,;: \-\."#]+)\[(\[*)\]`)
 	nonEscapePattern = regexp.MustCompile(`(\[[a-zA-Z0-9_,;: \-\."#]+\[*)\]`)
@@ -31,8 +31,8 @@ var (
 // Positions of substrings in regular expressions.
 const (
 	colorForegroundPos = 1
-	colorBackgroundPos = 3
-	colorFlagPos       = 5
+	colorBackgroundPos = 2
+	colorFlagPos       = 3
 )
 
 // Predefined InputField acceptance functions.
@@ -80,6 +80,10 @@ func init() {
 // tags. The new colors and attributes are returned where empty strings mean
 // "don't modify" and a dash ("-") means "reset to default".
 func styleFromTag(fgColor, bgColor, attributes string, tagSubstrings []string) (newFgColor, newBgColor, newAttributes string) {
+	if len(tagSubstrings) < 4 {
+		return fgColor, bgColor, attributes
+	}
+
 	if tagSubstrings[colorForegroundPos] != "" {
 		color := tagSubstrings[colorForegroundPos]
 		if color == "-" {
@@ -89,7 +93,7 @@ func styleFromTag(fgColor, bgColor, attributes string, tagSubstrings []string) (
 		}
 	}
 
-	if tagSubstrings[colorBackgroundPos-1] != "" {
+	if tagSubstrings[colorBackgroundPos] != "" {
 		color := tagSubstrings[colorBackgroundPos]
 		if color == "-" {
 			bgColor = "-"
@@ -98,7 +102,7 @@ func styleFromTag(fgColor, bgColor, attributes string, tagSubstrings []string) (
 		}
 	}
 
-	if tagSubstrings[colorFlagPos-1] != "" {
+	if tagSubstrings[colorFlagPos] != "" {
 		flags := tagSubstrings[colorFlagPos]
 		if flags == "-" {
 			attributes = "-"
@@ -167,7 +171,13 @@ func decomposeString(text string, findColors, findRegions bool) (colorIndices []
 	// Get positions of any tags.
 	if findColors {
 		colorIndices = colorPattern.FindAllStringIndex(text, -1)
+		if len(colorIndices) == 0 {
+			colorIndices = [][]int{}
+		}
 		colors = colorPattern.FindAllStringSubmatch(text, -1)
+		if len(colors) == 0 || len(colors[0]) < 4 {
+			colors = [][]string{}
+		}
 	}
 	if findRegions {
 		regionIndices = regionPattern.FindAllStringIndex(text, -1)

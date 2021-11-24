@@ -1081,7 +1081,6 @@ func (t *TextView) Draw(screen tcell.Screen) {
 
 		// Process tags.
 		colorTagIndices, colorTags, regionIndices, regions, escapeIndices, strippedText, _ := decomposeString(string(text), t.dynamicColors, t.regions)
-
 		// Calculate the position of the line.
 		var skip, posX int
 		if t.align == AlignLeft {
