@@ -151,7 +151,7 @@ func (a *ansi) Write(bb []byte) (int, error) {
 							}
 						case 5:
 							if !strings.ContainsRune(a.attributes, 'l') {
-								a.attributes += "l"
+								a.attributes += ""
 							}
 						case 22:
 							if i := strings.IndexRune(a.attributes, 'b'); i >= 0 {
