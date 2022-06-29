@@ -59,6 +59,10 @@ type textViewRegion struct {
 //   - k, up arrow: Move up.
 //   - g, home: Move to the top.
 //   - G, end: Move to the bottom.
+//   - Ctrl-E: Move down by one line.
+//   - Ctrl-Y: Move up by one line.
+//   - Ctrl-D: Move down by half the view's height.
+//   - Ctrl-U: Move up by half the view's height.
 //   - Ctrl-F, page down: Move down by one page.
 //   - Ctrl-B, page up: Move up by one page.
 //
@@ -1245,20 +1249,30 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyEnd:
 			t.trackEnd = true
 			t.columnOffset = 0
-		case tcell.KeyUp:
+		case tcell.KeyUp, tcell.KeyCtrlY:
 			t.trackEnd = false
 			t.lineOffset--
-		case tcell.KeyDown:
+		case tcell.KeyDown, tcell.KeyCtrlE:
 			t.lineOffset++
 		case tcell.KeyLeft:
 			t.columnOffset--
 		case tcell.KeyRight:
 			t.columnOffset++
-		case tcell.KeyPgDn, tcell.KeyCtrlF:
+		case tcell.KeyPgDn:
 			t.lineOffset += t.pageSize
-		case tcell.KeyPgUp, tcell.KeyCtrlB:
+		case tcell.KeyCtrlF:
+			t.lineOffset += t.pageSize - 1
+		case tcell.KeyCtrlD:
+			t.lineOffset += t.pageSize / 2
+		case tcell.KeyPgUp:
 			t.trackEnd = false
 			t.lineOffset -= t.pageSize
+		case tcell.KeyCtrlB:
+			t.trackEnd = false
+			t.lineOffset -= t.pageSize - 1
+		case tcell.KeyCtrlU:
+			t.trackEnd = false
+			t.lineOffset -= t.pageSize / 2
 		}
 	})
 }
