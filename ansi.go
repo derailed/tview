@@ -201,7 +201,7 @@ func (a *ansi) Write(bb []byte) (int, error) {
 								continue
 							}
 							var color string
-							if fields[index+1] == 5 && len(fields) > index+2 { // 8-bit colors.
+							if fields[index+1] == 5 && index+2 < len(fields) { // 8-bit colors.
 								colorNumber := fields[index+2]
 								if colorNumber <= 15 {
 									color = colors[colorNumber]
@@ -230,7 +230,7 @@ func (a *ansi) Write(bb []byte) (int, error) {
 									}
 									color = "#" + g + g + g
 								}
-							} else if fields[index+1] == 2 && len(fields) > index+4 { // 24-bit colors.
+							} else if fields[index+1] == 2 && index+4 < len(fields) { // 24-bit colors.
 								red := fields[index+2]
 								green := fields[index+3]
 								blue := fields[index+4]
