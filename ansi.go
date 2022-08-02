@@ -197,7 +197,7 @@ func (a *ansi) Write(bb []byte) (int, error) {
 							}
 							background = colors[n]
 						case 38, 48:
-							if len(fields) < index+1 {
+							if index+1 >= len(fields) {
 								continue
 							}
 							var color string
