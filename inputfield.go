@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 // InputField is a one-line box (three lines if there is a title) where the

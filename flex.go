@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 // Configuration values.
@@ -47,7 +47,7 @@ type Flex struct {
 // background before any items are drawn, set it to a box with the desired
 // color:
 //
-//   flex.Box = NewBox()
+//	flex.Box = NewBox()
 func NewFlex() *Flex {
 	f := &Flex{
 		direction: FlexColumn,

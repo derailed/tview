@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 // Tree navigation events.
@@ -365,8 +365,8 @@ func (t *TreeView) SetTopLevel(topLevel int) *TreeView {
 //
 // For example, to display a hierarchical list with bullet points:
 //
-//   treeView.SetGraphics(false).
-//     SetPrefixes([]string{"* ", "- ", "x "})
+//	treeView.SetGraphics(false).
+//	  SetPrefixes([]string{"* ", "- ", "x "})
 func (t *TreeView) SetPrefixes(prefixes []string) *TreeView {
 	t.prefixes = prefixes
 	return t

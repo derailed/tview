@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 // DefaultFormFieldWidth is the default field screen width of form elements

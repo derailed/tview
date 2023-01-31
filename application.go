@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 const (
@@ -60,9 +60,9 @@ type queuedUpdate struct {
 // The following command displays a primitive p on the screen until Ctrl-C is
 // pressed:
 //
-//   if err := tview.NewApplication().SetRoot(p, true).Run(); err != nil {
-//       panic(err)
-//   }
+//	if err := tview.NewApplication().SetRoot(p, true).Run(); err != nil {
+//	    panic(err)
+//	}
 type Application struct {
 	sync.RWMutex
 
@@ -525,7 +525,7 @@ func (a *Application) Suspend(f func()) bool {
 	defer a.RUnlock()
 	if a.screen != screen {
 		// Calling Stop() while in suspend mode currently still leads to a
-		// panic, see https://github.com/gdamore/tcell/issues/440.
+		// panic, see https://github.com/derailed/tcell/issues/440.
 		screen.Fini()
 		if a.screen == nil {
 			return true // If stop was called (a.screen is nil), we're done already.

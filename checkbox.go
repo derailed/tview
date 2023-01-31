@@ -3,7 +3,7 @@ package tview
 import (
 	"strings"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/derailed/tcell/v2"
 )
 
 // Checkbox implements a simple box for boolean values which can be checked and
