@@ -63,3 +63,7 @@ func (m *ModalForm) Draw(screen tcell.Screen) {
 	m.frame.SetRect(x, y, width, height)
 	m.frame.Draw(screen)
 }
+
+func (m *ModalForm) SetTitleColor(c tcell.Color) {
+	m.frame.SetTitleColor(c)
+}
