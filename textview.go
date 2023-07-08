@@ -1255,9 +1255,9 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyDown, tcell.KeyCtrlE:
 			t.lineOffset++
 		case tcell.KeyLeft:
-			t.columnOffset--
+			t.columnOffset -= 30
 		case tcell.KeyRight:
-			t.columnOffset++
+			t.columnOffset += 30
 		case tcell.KeyPgDn:
 			t.lineOffset += t.pageSize
 		case tcell.KeyCtrlF:
