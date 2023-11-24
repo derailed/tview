@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"unicode/utf8"
 
@@ -764,14 +765,14 @@ func (t *TextView) reindexBuffer(width int) {
 		foregroundColor, backgroundColor, attributes string
 	)
 
+	splitLines := make([]string, 0, 1_000)
 	// Go through each line in the buffer.
 	for bufferIndex, bline := range t.buffer {
 		line := string(bline)
 		colorTagIndices, colorTags, regionIndices, regions, escapeIndices, strippedStr, _ := decomposeString(line, t.dynamicColors, t.regions)
 
 		// Split the line if required.
-		var splitLines []string
-		// str = []byte(strippedStr)
+		splitLines = splitLines[:0]
 		if t.wrap && len(strippedStr) > 0 {
 			for len(strippedStr) > 0 {
 				extract := runewidth.Truncate(strippedStr, width, "")
@@ -897,12 +898,14 @@ func (t *TextView) reindexBuffer(width int) {
 		// Word-wrapped lines may have trailing whitespace. Remove it.
 		if t.wrap && t.wordWrap {
 			for _, line := range t.index {
-				str := t.buffer[line.Line][line.Pos:line.NextPos]
-				spaces := spacePattern.FindAllStringIndex(string(str), -1)
-				if spaces != nil && spaces[len(spaces)-1][1] == len(str) {
-					oldNextPos := line.NextPos
-					line.NextPos -= spaces[len(spaces)-1][1] - spaces[len(spaces)-1][0]
-					line.Width -= stringWidth(string(t.buffer[line.Line][line.NextPos:oldNextPos]))
+				str := string(t.buffer[line.Line][line.Pos:line.NextPos])
+				if strings.HasSuffix(str, " ") {
+					spaces := spacePattern.FindAllStringIndex(str, -1)
+					if spaces != nil && spaces[len(spaces)-1][1] == len(str) {
+						oldNextPos := line.NextPos
+						line.NextPos -= spaces[len(spaces)-1][1] - spaces[len(spaces)-1][0]
+						line.Width -= stringWidth(string(t.buffer[line.Line][line.NextPos:oldNextPos]))
+					}
 				}
 			}
 		}
