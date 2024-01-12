@@ -80,38 +80,28 @@ func init() {
 // tags. The new colors and attributes are returned where empty strings mean
 // "don't modify" and a dash ("-") means "reset to default".
 func styleFromTag(fgColor, bgColor, attributes string, tagSubstrings []string) (newFgColor, newBgColor, newAttributes string) {
-	if len(tagSubstrings) < 4 {
-		return fgColor, bgColor, attributes
-	}
-
-	if tagSubstrings[colorForegroundPos] != "" {
-		color := tagSubstrings[colorForegroundPos]
+	if color := tagSubstrings[colorForegroundPos]; color != "" {
+		newFgColor = color
 		if color == "-" {
-			fgColor = "-"
-		} else if color != "" {
-			fgColor = color
+			newFgColor = "-"
 		}
 	}
 
-	if tagSubstrings[colorBackgroundPos] != "" {
-		color := tagSubstrings[colorBackgroundPos]
+	if color := tagSubstrings[colorBackgroundPos]; color != "" {
+		newBgColor = color
 		if color == "-" {
-			bgColor = "-"
-		} else if color != "" {
-			bgColor = color
+			newBgColor = "-"
 		}
 	}
 
-	if tagSubstrings[colorFlagPos] != "" {
-		flags := tagSubstrings[colorFlagPos]
+	if flags := tagSubstrings[colorFlagPos]; flags != "" {
+		newAttributes = flags
 		if flags == "-" {
-			attributes = "-"
-		} else if flags != "" {
-			attributes = flags
+			newAttributes = "-"
 		}
 	}
 
-	return fgColor, bgColor, attributes
+	return
 }
 
 // overlayStyle calculates a new style based on "style" and applying tag-based
@@ -171,12 +161,9 @@ func decomposeString(text string, findColors, findRegions bool) (colorIndices []
 	// Get positions of any tags.
 	if findColors {
 		colorIndices = colorPattern.FindAllStringIndex(text, -1)
-		if len(colorIndices) == 0 {
-			colorIndices = [][]int{}
-		}
 		colors = colorPattern.FindAllStringSubmatch(text, -1)
 		if len(colors) == 0 || len(colors[0]) < 4 {
-			colors = [][]string{}
+			colors = nil
 		}
 	}
 	if findRegions {
