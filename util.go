@@ -568,7 +568,7 @@ func Escape(text string) string {
 // EscapeBytes escapes the given bytes such that color and/or region tags are not
 // recognized and substituted by the print functions of this package.
 func EscapeBytes(text []byte) []byte {
-	return nonEscapePattern.ReplaceAll(text, []byte("$1"))
+	return nonEscapePattern.ReplaceAll(text, []byte("$1[]"))
 }
 
 // iterateString iterates through the given string one printed character at a
