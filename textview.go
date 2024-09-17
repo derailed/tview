@@ -233,6 +233,11 @@ func (t *TextView) SetCursorIndex(i int) {
 	t.cursorIndex = i
 }
 
+// GetCursor returns cursor position.
+func (t *TextView) GetCursorIndex() int {
+	return t.cursorIndex
+}
+
 // SetHighlightColor sets the region highlight color.
 func (t *TextView) SetHighlightColor(c tcell.Color) {
 	t.highlightColor = c
