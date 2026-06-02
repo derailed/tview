@@ -1211,6 +1211,15 @@ func (t *TextView) Draw(screen tcell.Screen) {
 		t.index = nil
 		t.lineOffset = 0
 	}
+
+	// Position the hardware cursor when requested.
+	if t.showCursor {
+		cursorX := x + t.cursorIndex - t.columnOffset
+		cursorY := y
+		if cursorX >= x && cursorX < x+width && cursorY >= y && cursorY < y+height {
+			screen.ShowCursor(cursorX, cursorY)
+		}
+	}
 }
 
 // InputHandler returns the handler for this primitive.
