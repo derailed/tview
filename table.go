@@ -3,7 +3,7 @@ package tview
 import (
 	"sort"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	colorful "github.com/lucasb-eyer/go-colorful"
 )
 
@@ -144,7 +144,9 @@ func (c *TableCell) SetAttributes(attr tcell.AttrMask) *TableCell {
 // SetStyle sets the cell's style (foreground color, background color, and
 // attributes) all at once.
 func (c *TableCell) SetStyle(style tcell.Style) *TableCell {
-	c.Color, c.BackgroundColor, c.Attributes = style.Decompose()
+	c.Color = style.GetForeground()
+	c.BackgroundColor = style.GetBackground()
+	c.Attributes = style.GetAttributes()
 	return c
 }
 
@@ -902,7 +904,7 @@ ColumnLoop:
 			cell.x, cell.y, cell.width = x+columnX+1, y+rowY, finalWidth
 			_, printed, _, _ := printWithStyle(screen, cell.Text, x+columnX+1, y+rowY, 0, finalWidth, cell.Align, tcell.StyleDefault.Foreground(cell.Color).Attributes(cell.Attributes), true)
 			if TaggedStringWidth(cell.Text)-printed > 0 && printed > 0 {
-				_, _, style, _ := screen.GetContent(x+columnX+finalWidth, y+rowY)
+				_, _, style, _ := getScreenContent(screen, x+columnX+finalWidth, y+rowY)
 				printWithStyle(screen, string(SemigraphicsHorizontalEllipsis), x+columnX+finalWidth, 0, y+rowY, 1, AlignLeft, style, false)
 			}
 		}
@@ -949,8 +951,8 @@ ColumnLoop:
 	colorBackground := func(fromX, fromY, w, h int, backgroundColor, textColor tcell.Color, backgroundTransparent, textTransparent bool, attr tcell.AttrMask, invert bool) {
 		for by := 0; by < h && fromY+by < y+height; by++ {
 			for bx := 0; bx < w && fromX+bx < x+width; bx++ {
-				m, c, style, _ := screen.GetContent(fromX+bx, fromY+by)
-				fg, bg, a := style.Decompose()
+				m, c, style, _ := getScreenContent(screen, fromX+bx, fromY+by)
+				fg, bg, a := decomposeStyle(style)
 				if invert {
 					style = style.Background(textColor).Foreground(backgroundColor)
 				} else {
@@ -1021,7 +1023,7 @@ ColumnLoop:
 		_, _, lj := c.Hcl()
 		return li < lj
 	})
-	selFg, selBg, selAttr := t.selectedStyle.Decompose()
+	selFg, selBg, selAttr := decomposeStyle(t.selectedStyle)
 	for _, bgColor := range backgroundColors {
 		entries := cellsByBackgroundColor[bgColor]
 		for _, info := range entries {
@@ -1214,7 +1216,7 @@ func (t *Table) InputHandler() func(event *tcell.EventKey, setFocus func(p Primi
 
 		switch key {
 		case tcell.KeyRune:
-			switch event.Rune() {
+			switch eventRune(event) {
 			case 'g':
 				home()
 			case 'G':

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	colorful "github.com/lucasb-eyer/go-colorful"
 	"github.com/rivo/uniseg"
 )
@@ -1159,7 +1159,7 @@ func (t *TextView) Draw(screen tcell.Screen) {
 					}
 				}
 				if highlighted {
-					fg, bg, _ := style.Decompose()
+					fg, bg, _ := decomposeStyle(style)
 					if bg == tcell.ColorDefault {
 						r, g, b := fg.RGB()
 						c := colorful.Color{R: float64(r) / 255, G: float64(g) / 255, B: float64(b) / 255}
@@ -1231,7 +1231,7 @@ func (t *TextView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 
 		switch key {
 		case tcell.KeyRune:
-			switch event.Rune() {
+			switch eventRune(event) {
 			case 'g': // Home.
 				t.trackEnd = false
 				t.lineOffset = 0

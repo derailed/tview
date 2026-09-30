@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // listItem represents one item in a List.
@@ -495,8 +495,8 @@ func (l *List) Draw(screen tcell.Screen) {
 			}
 
 			for bx := 0; bx < textWidth; bx++ {
-				m, c, style, _ := screen.GetContent(x+bx, y)
-				fg, _, _ := style.Decompose()
+				m, c, style, _ := getScreenContent(screen, x+bx, y)
+				fg := style.GetForeground()
 				if fg == l.mainTextColor {
 					fg = l.selectedTextColor
 				}
@@ -586,7 +586,7 @@ func (l *List) InputHandler() func(event *tcell.EventKey, setFocus func(p Primit
 				}
 			}
 		case tcell.KeyRune:
-			ch := event.Rune()
+			ch := eventRune(event)
 			if ch != ' ' {
 				// It's not a space bar. Is it a shortcut?
 				var found bool

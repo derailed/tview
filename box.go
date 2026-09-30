@@ -3,7 +3,7 @@ package tview
 import (
 	"fmt"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // Box implements the Primitive interface with an empty background and optional
@@ -175,6 +175,7 @@ func (b *Box) GetDrawFunc() func(screen tcell.Screen, x, y, width, height int) (
 // This is only meant to be used by subclassing primitives.
 func (b *Box) WrapInputHandler(inputHandler func(*tcell.EventKey, func(p Primitive))) func(*tcell.EventKey, func(p Primitive)) {
 	return func(event *tcell.EventKey, setFocus func(p Primitive)) {
+		event = normalizeKeyEvent(event)
 		if b.inputCapture != nil {
 			event = b.inputCapture(event)
 		}
@@ -299,14 +300,12 @@ func (b *Box) SetBorderAttributes(attr tcell.AttrMask) *Box {
 
 // GetBorderAttributes returns the border's style attributes.
 func (b *Box) GetBorderAttributes() tcell.AttrMask {
-	_, _, attr := b.borderStyle.Decompose()
-	return attr
+	return b.borderStyle.GetAttributes()
 }
 
 // GetBorderColor returns the box's border color.
 func (b *Box) GetBorderColor() tcell.Color {
-	color, _, _ := b.borderStyle.Decompose()
-	return color
+	return b.borderStyle.GetForeground()
 }
 
 // GetBackgroundColor returns the box's background color.
@@ -396,8 +395,8 @@ func (b *Box) DrawForSubclass(screen tcell.Screen, p Primitive) {
 		if b.title != "" && b.width >= 4 {
 			printed, _ := Print(screen, b.title, b.x+1, b.y, b.width-2, b.titleAlign, b.titleColor)
 			if len(b.title)-printed > 0 && printed > 0 {
-				_, _, style, _ := screen.GetContent(b.x+b.width-2, b.y)
-				fg, _, _ := style.Decompose()
+				_, _, style, _ := getScreenContent(screen, b.x+b.width-2, b.y)
+				fg := style.GetForeground()
 				Print(screen, string(SemigraphicsHorizontalEllipsis), b.x+b.width-2, b.y, 1, AlignLeft, fg)
 			}
 		}
@@ -440,6 +439,6 @@ func ToRGB(c tcell.Color) string {
 }
 
 func ShowBg(s tcell.Style) string {
-	fg, _, _ := s.Decompose()
+	fg := s.GetForeground()
 	return ToRGB(fg)
 }

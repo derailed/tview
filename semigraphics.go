@@ -1,6 +1,6 @@
 package tview
 
-import "github.com/derailed/tcell/v2"
+import "github.com/gdamore/tcell/v3"
 
 // Semigraphics provides an easy way to access unicode characters for drawing.
 //
@@ -273,7 +273,7 @@ var SemigraphicJoints = map[string]rune{
 // position with the given style, joining it with any existing semigraphics
 // rune.At this point, only regular single line borders are supported.
 func PrintJoinedSemigraphics(screen tcell.Screen, x, y int, ch rune, style tcell.Style) {
-	previous, _, _, _ := screen.GetContent(x, y)
+	previous, _, _, _ := getScreenContent(screen, x, y)
 
 	// What's the resulting rune?
 	var result rune

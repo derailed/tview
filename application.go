@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 const (
@@ -264,7 +264,10 @@ func (a *Application) Run() error {
 			}
 
 			// Wait for next event and queue it.
-			event := screen.PollEvent()
+			event, ok := <-screen.EventQ()
+			if !ok {
+				event = nil
+			}
 			if event != nil {
 				// Regular event. Queue.
 				a.QueueEvent(event)
@@ -307,6 +310,7 @@ EventLoop:
 
 			switch event := event.(type) {
 			case *tcell.EventKey:
+				event = normalizeKeyEvent(event)
 				a.RLock()
 				root := a.root
 				inputCapture := a.inputCapture
@@ -324,7 +328,7 @@ EventLoop:
 				}
 
 				// Ctrl-C closes the application.
-				if event.Key() == tcell.KeyCtrlC {
+				if isCtrlC(event) {
 					a.Stop()
 				}
 

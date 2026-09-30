@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 )
@@ -107,7 +107,7 @@ func styleFromTag(fgColor, bgColor, attributes string, tagSubstrings []string) (
 // overlayStyle calculates a new style based on "style" and applying tag-based
 // colors/attributes to it (see also styleFromTag()).
 func overlayStyle(style tcell.Style, fgColor, bgColor, attributes string) tcell.Style {
-	_, _, defAttr := style.Decompose()
+	defAttr := style.GetAttributes()
 
 	if fgColor != "" && fgColor != "-" {
 		style = style.Foreground(tcell.GetColor(fgColor))
@@ -121,7 +121,7 @@ func overlayStyle(style tcell.Style, fgColor, bgColor, attributes string) tcell.
 		style = style.Bold(defAttr&tcell.AttrBold > 0)
 		style = style.Blink(defAttr&tcell.AttrBlink > 0)
 		style = style.Reverse(defAttr&tcell.AttrReverse > 0)
-		style = style.Underline(defAttr&tcell.AttrUnderline > 0)
+		style = style.Underline(style.HasUnderline())
 		style = style.Dim(defAttr&tcell.AttrDim > 0)
 	} else if attributes != "" {
 		style = style.Normal()
@@ -393,23 +393,18 @@ func printWithStyle(screen tcell.Screen, text string, x, y, skipWidth, maxWidth,
 		// Memorize positions.
 		to = textPos + length
 
-		// Print the rune sequence.
+		// Print the full grapheme cluster. tcell v3 owns cell-width and
+		// continuation-cell handling, avoiding corruption of joined emoji and
+		// other multi-rune clusters.
 		finalX := x + drawnWidth
 		finalStyle := style
 		if maintainBackground {
-			_, _, existingStyle, _ := screen.GetContent(finalX, y)
-			_, background, _ := existingStyle.Decompose()
+			_, _, existingStyle, _ := getScreenContent(screen, finalX, y)
+			background := existingStyle.GetBackground()
 			finalStyle = finalStyle.Background(background)
 		}
 		finalStyle = overlayStyle(finalStyle, foregroundColor, backgroundColor, attributes)
-		for offset := screenWidth - 1; offset >= 0; offset-- {
-			// To avoid undesired effects, we populate all cells.
-			if offset == 0 {
-				screen.SetContent(finalX+offset, y, main, comb, finalStyle)
-			} else {
-				screen.SetContent(finalX+offset, y, ' ', nil, finalStyle)
-			}
-		}
+		screen.Put(finalX, y, strippedText[textPos:textPos+length], finalStyle)
 
 		// Advance.
 		drawn += length

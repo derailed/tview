@@ -3,7 +3,7 @@ package tview
 import (
 	"math"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // gridItem represents one primitive and its possible position on a grid.
@@ -293,7 +293,7 @@ func (g *Grid) InputHandler() func(event *tcell.EventKey, setFocus func(p Primit
 		// Process our own key events if we have direct focus.
 		switch event.Key() {
 		case tcell.KeyRune:
-			switch event.Rune() {
+			switch eventRune(event) {
 			case 'g':
 				g.rowOffset, g.columnOffset = 0, 0
 			case 'G':

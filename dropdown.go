@@ -3,7 +3,7 @@ package tview
 import (
 	"strings"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // dropDownOption is one option that can be selected in a drop-down primitive.
@@ -416,8 +416,8 @@ func (d *DropDown) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 			d.prefix = ""
 
 			// If the first key was a letter already, it becomes part of the prefix.
-			if r := event.Rune(); key == tcell.KeyRune && r != ' ' {
-				d.prefix += string(r)
+			if str := event.Str(); key == tcell.KeyRune && str != " " {
+				d.prefix += str
 				d.evalPrefix()
 			}
 
@@ -472,7 +472,7 @@ func (d *DropDown) openList(setFocus func(Primitive)) {
 		}
 	}).SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyRune {
-			d.prefix += string(event.Rune())
+			d.prefix += event.Str()
 			d.evalPrefix()
 		} else if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
 			if len(d.prefix) > 0 {

@@ -3,7 +3,7 @@ package tview
 import (
 	"strings"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // Checkbox implements a simple box for boolean values which can be checked and
@@ -198,7 +198,7 @@ func (c *Checkbox) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		// Process key event.
 		switch key := event.Key(); key {
 		case tcell.KeyRune, tcell.KeyEnter: // Check.
-			if key == tcell.KeyRune && event.Rune() != ' ' {
+			if key == tcell.KeyRune && event.Str() != " " {
 				break
 			}
 			c.checked = !c.checked

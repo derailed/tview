@@ -1,7 +1,7 @@
 package tview
 
 import (
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // Tree navigation events.
@@ -755,7 +755,7 @@ func (t *TreeView) InputHandler() func(event *tcell.EventKey, setFocus func(p Pr
 		case tcell.KeyPgUp, tcell.KeyCtrlB:
 			t.movement = treePageUp
 		case tcell.KeyRune:
-			switch event.Rune() {
+			switch eventRune(event) {
 			case 'g':
 				t.movement = treeHome
 			case 'G':

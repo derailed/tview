@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/derailed/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 // InputField is a one-line box (three lines if there is a title) where the
@@ -473,13 +473,14 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 
 		// Add character function. Returns whether or not the rune character is
 		// accepted.
-		add := func(r rune) bool {
-			newText := i.text[:i.cursorPos] + string(r) + i.text[i.cursorPos:]
+		add := func(str string) bool {
+			newText := i.text[:i.cursorPos] + str + i.text[i.cursorPos:]
+			r, _ := utf8.DecodeLastRuneInString(str)
 			if i.accept != nil && !i.accept(newText, r) {
 				return false
 			}
 			i.text = newText
-			i.cursorPos += len(string(r))
+			i.cursorPos += len(str)
 			return true
 		}
 
@@ -515,7 +516,7 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 		case tcell.KeyRune: // Regular character.
 			if event.Modifiers()&tcell.ModAlt > 0 {
 				// We accept some Alt- key combinations.
-				switch event.Rune() {
+				switch eventRune(event) {
 				case 'a': // Home.
 					home()
 				case 'e': // End.
@@ -525,13 +526,13 @@ func (i *InputField) InputHandler() func(event *tcell.EventKey, setFocus func(p 
 				case 'f': // Move word right.
 					moveWordRight()
 				default:
-					if !add(event.Rune()) {
+					if !add(event.Str()) {
 						return
 					}
 				}
 			} else {
 				// Other keys are simply accepted as regular characters.
-				if !add(event.Rune()) {
+				if !add(event.Str()) {
 					return
 				}
 			}
