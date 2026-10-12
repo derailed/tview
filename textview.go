@@ -10,6 +10,7 @@ import (
 
 	"github.com/derailed/tcell/v2"
 	colorful "github.com/lucasb-eyer/go-colorful"
+	"github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -772,13 +773,9 @@ func (t *TextView) reindexBuffer(width int) {
 		if t.wrap && len(strippedStr) > 0 {
 			var extract string
 			for len(strippedStr) > 0 {
-				// !!BOZO!! This is a dog. Would this work instead??
-				// extract := runewidth.Truncate(strippedStr, width, "")
-				if len(strippedStr) > width {
-					extract = strippedStr[:width]
-				} else {
-					extract = strippedStr
-				}
+				// Cut at the screen width, not the byte length, so multi-byte
+				// and wide characters aren't split or miscounted.
+				extract = runewidth.Truncate(strippedStr, width, "")
 
 				if len(extract) == 0 {
 					// We'll extract at least one grapheme cluster.
